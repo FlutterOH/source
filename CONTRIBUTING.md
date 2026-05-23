@@ -266,7 +266,7 @@ Keep commits focused. Conventional Commits are preferred:
 docs: refresh official source maintenance guide
 ci: validate source with fluoh
 feat(sdk): add 3.35.8-ohos-0.0.4
-feat(packages): add camera manifest route
+feat(source): add camera manifest route
 ```
 
 Do not commit credentials, local caches, `.DS_Store`, generated build output,

@@ -248,7 +248,7 @@ PR 应说明：
 docs: refresh official source maintenance guide
 ci: validate source with fluoh
 feat(sdk): add 3.35.8-ohos-0.0.4
-feat(packages): add camera manifest route
+feat(source): add camera manifest route
 ```
 
 不要提交 credentials、本地 cache、`.DS_Store`、生成的 build output 或机器相关路径。
