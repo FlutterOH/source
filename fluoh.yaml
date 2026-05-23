@@ -1,0 +1,18 @@
+schema: 1
+kind: source
+name: FlutterOH official source
+description: Official FlutterOH SDK releases and package implementation metadata.
+
+repository:
+  git:
+    url: https://github.com/FlutterOH/source.git
+
+environment:
+  fluoh: '>=0.1.0'
+
+sdk:
+  git:
+    url: https://gitcode.com/openharmony-tpc/flutter_flutter.git
+  versions:
+    - 3.35.8-ohos-0.0.3
+    - 3.35.8-ohos-0.0.2

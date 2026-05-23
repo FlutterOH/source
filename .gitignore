@@ -1,0 +1,8 @@
+.DS_Store
+.dart_tool/
+.fluoh/
+build/
+coverage/
+*.log
+*.fluoh-next-*
+*.fluoh-previous-*

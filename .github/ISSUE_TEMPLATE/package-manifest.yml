@@ -1,0 +1,70 @@
+name: Package manifest update
+description: Request adding or changing an official package implementation manifest.
+title: "[Package] "
+labels:
+  - packages
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this only for package adaptations that already have published FlutterOH package release metadata from `fluoh pub release`.
+        Adaptation code should stay in the package repository, not in `FlutterOH/source`.
+        The first `FlutterOH/source` pull request must add both the root `fluoh.yaml` route and `manifests/<route>/fluoh.yaml`.
+        After that route is merged, new package releases normally need only new package repository release tags; scheduled sync can import them without a new `FlutterOH/source` pull request.
+  - type: input
+    id: package
+    attributes:
+      label: Package name
+      placeholder: camera
+    validations:
+      required: true
+  - type: input
+    id: route
+    attributes:
+      label: Manifest route
+      description: Path under `manifests/`.
+      placeholder: manifests/camera/fluoh.yaml
+    validations:
+      required: true
+  - type: input
+    id: implementation-repository
+    attributes:
+      label: FlutterOH package repository
+      placeholder: https://github.com/FlutterOH/camera.git
+    validations:
+      required: true
+  - type: input
+    id: upstream
+    attributes:
+      label: Upstream repository and package path
+      placeholder: https://github.com/flutter/packages.git, packages/camera/camera
+    validations:
+      required: true
+  - type: input
+    id: sdk
+    attributes:
+      label: SDK line or complete SDK version
+      placeholder: 3.35 or 3.35.8-ohos-0.0.3
+    validations:
+      required: true
+  - type: textarea
+    id: releases
+    attributes:
+      label: Release records
+      description: List upstream versions, FlutterOH release versions, optional statuses, and `fluoh pub release` tags.
+      placeholder: |
+        upstreamVersion: 0.11.0
+        version: 0.1.0
+        tag: camera-0.11.0-ohos-3.35-0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List the source validation commands used for this manifest.
+      placeholder: |
+        fluoh source validate
+        git diff --check
+    validations:
+      required: true

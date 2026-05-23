@@ -1,0 +1,46 @@
+name: validate source
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout fluoh
+        uses: actions/checkout@v4
+        with:
+          repository: FlutterOH/fluoh
+          path: fluoh
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install fluoh from source
+        working-directory: fluoh
+        run: dart pub global activate --source path . --overwrite
+
+      - name: Add pub cache bin to PATH
+        run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Validate official source with fluoh
+        working-directory: source
+        run: fluoh source validate

@@ -1,0 +1,94 @@
+name: sync source
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 18 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-source
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          path: source
+          ref: main
+          fetch-depth: 0
+
+      - name: Checkout fluoh
+        uses: actions/checkout@v4
+        with:
+          repository: FlutterOH/fluoh
+          path: fluoh
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install fluoh from source
+        working-directory: fluoh
+        run: dart pub global activate --source path . --overwrite
+
+      - name: Add pub cache bin to PATH
+        run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Check manifest routes
+        id: routes
+        working-directory: source
+        run: |
+          ruby <<'RUBY'
+          require "yaml"
+
+          root = YAML.load_file("fluoh.yaml")
+          manifests = root["manifests"]
+          has_routes = manifests.is_a?(Array) && manifests.any?
+
+          File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
+            output.puts("has_routes=#{has_routes}")
+          end
+
+          if has_routes
+            puts "Manifest routes found; source sync will run."
+          else
+            puts "No manifest routes configured; source sync is not needed."
+          end
+          RUBY
+
+      - name: Sync package release records
+        if: steps.routes.outputs.has_routes == 'true'
+        working-directory: source
+        run: fluoh source sync .
+
+      - name: Validate synced source
+        if: steps.routes.outputs.has_routes == 'true'
+        working-directory: source
+        run: |
+          fluoh source validate
+          git diff --check
+
+      - name: Commit synced source to main
+        if: steps.routes.outputs.has_routes == 'true'
+        working-directory: source
+        run: |
+          if git diff --quiet; then
+            echo "No source data changes."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fluoh.yaml manifests
+          git commit -m "chore: sync source data"
+          git pull --rebase origin main
+          fluoh source validate
+          git diff --check origin/main...HEAD
+          git push origin HEAD:main

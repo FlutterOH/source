@@ -1,0 +1,45 @@
+name: SDK release update
+description: Request adding, changing, or removing an official FlutterOH SDK version.
+title: "[SDK] "
+labels:
+  - sdk
+body:
+  - type: input
+    id: version
+    attributes:
+      label: SDK version tag
+      description: Complete FlutterOH SDK tag.
+      placeholder: 3.35.8-ohos-0.0.3
+    validations:
+      required: true
+  - type: input
+    id: repository
+    attributes:
+      label: SDK repository
+      placeholder: https://gitcode.com/openharmony-tpc/flutter_flutter.git
+    validations:
+      required: true
+  - type: dropdown
+    id: action
+    attributes:
+      label: Requested action
+      options:
+        - Add version
+        - Remove version
+        - Correct version metadata
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Tag proof
+      description: Link the tag or paste command output showing the tag exists or should be removed.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: User impact
+      description: Describe who should consume this SDK version and whether older versions should remain listed.
+    validations:
+      required: true

@@ -1,0 +1,47 @@
+name: Source data issue
+description: Report incorrect official source data, documentation, templates, or CI.
+title: "[Source] "
+labels:
+  - source
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for `FlutterOH/source` source data and maintainer workflow.
+        CLI behavior belongs in the `FlutterOH/fluoh` repository.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Root fluoh.yaml
+        - SDK releases
+        - Package manifests
+        - README or contributing docs
+        - Issue or pull request templates
+        - GitHub Actions workflow
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current state
+      description: Describe the incorrect data, missing guidance, or workflow problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected state
+      description: Describe what the official source should publish or document instead.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include file paths, source snippets, command output, tags, or workflow links.
+      placeholder: |
+        fluoh source validate
+    validations:
+      required: false
