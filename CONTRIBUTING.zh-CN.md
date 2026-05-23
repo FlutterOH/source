@@ -151,8 +151,7 @@ packages:
 4. 创建 `manifests/<route>/fluoh.yaml`，写入 package repository、upstream、
    package path、SDK line 和已发布 package release tag 对应的 records。
 5. 运行 `fluoh source validate`。
-6. 运行 `git status --short --ignored=matching` 和 `git diff --check`。
-7. 提交 PR，说明 package name、适配仓库、上游仓库和 path、SDK line 或完整 SDK
+6. 提交 PR，说明 package name、适配仓库、上游仓库和 path、SDK line 或完整 SDK
    version、release tag 和校验结果。
 
 route 合并后，`.github/workflows/sync-source.yml` 会根据包仓库 tags 继续更新
@@ -161,7 +160,6 @@ release records。route 已存在后如需手动刷新，运行：
 ```sh
 fluoh source sync .
 fluoh source validate
-git diff --check
 ```
 
 维护者也可以在 GitHub Actions 中手动触发 `sync source` workflow，用于下一次定时任务
@@ -205,8 +203,6 @@ fluoh sdk list
 
 ```sh
 fluoh source validate
-git status --short --ignored=matching
-git diff --check
 ```
 
 如果修改包 manifest，在包 release 可用后，还应确认示例项目可以消费对应 metadata。
@@ -227,7 +223,6 @@ GitHub Actions 中临时手动触发。它会先检查根 `fluoh.yaml` 是否声
 ```sh
 fluoh source sync .
 fluoh source validate
-git diff --check
 ```
 
 如果 sync 产生源数据变更，workflow 会直接提交到 `main`。

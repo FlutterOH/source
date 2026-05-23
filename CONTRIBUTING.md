@@ -160,8 +160,7 @@ First-time package intake uses a pull request to this repository:
 4. Create `manifests/<route>/fluoh.yaml` with repository, upstream, package
    paths, SDK line, and records from published package release tags.
 5. Run `fluoh source validate`.
-6. Run `git status --short --ignored=matching` and `git diff --check`.
-7. Open a pull request that lists the package name, package repository,
+6. Open a pull request that lists the package name, package repository,
    upstream repository and path, SDK line or complete SDK version, release tag,
    and validation result.
 
@@ -172,7 +171,6 @@ exists, run:
 ```sh
 fluoh source sync .
 fluoh source validate
-git diff --check
 ```
 
 Maintainers can also trigger the `sync source` workflow from GitHub Actions for
@@ -220,8 +218,6 @@ Before opening a pull request, run:
 
 ```sh
 fluoh source validate
-git status --short --ignored=matching
-git diff --check
 ```
 
 If package manifests are changed, verify that a sample project can consume the
@@ -245,7 +241,6 @@ workflow exits successfully without changing files. Once routes exist, it runs:
 ```sh
 fluoh source sync .
 fluoh source validate
-git diff --check
 ```
 
 When sync changes source data, the workflow commits directly to `main`.

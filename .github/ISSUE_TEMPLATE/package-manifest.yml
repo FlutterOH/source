@@ -65,6 +65,5 @@ body:
       description: List the source validation commands used for this manifest.
       placeholder: |
         fluoh source validate
-        git diff --check
     validations:
       required: true

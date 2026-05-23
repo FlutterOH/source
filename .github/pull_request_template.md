@@ -20,8 +20,6 @@
 
 ```sh
 fluoh source validate
-git status --short --ignored=matching
-git diff --check
 ```
 
 Validation result:
