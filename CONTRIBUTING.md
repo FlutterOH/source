@@ -164,7 +164,7 @@ First-time package intake uses a pull request to this repository:
    upstream repository and path, SDK line or complete SDK version, release tag,
    and validation result.
 
-After the route is merged, `.github/workflows/sync-source.yml` can keep release
+After the route is merged, `.github/workflows/sync.yml` can keep release
 records current from package repository tags. For manual refreshes after a route
 exists, run:
 
@@ -225,15 +225,16 @@ affected metadata after the package release is available.
 
 ## GitHub Workflow
 
-`.github/workflows/validate.yml` validates the checked-out source with the
-current `fluoh` CLI. It should remain focused on source validation:
+`.github/workflows/validate.yml` validates the checked-out source with `fluoh`.
+It should remain focused on source validation:
 
-- Install or activate `fluoh`.
+- Install the released `fluoh` from pub.dev, falling back to the default
+  `FlutterOH/fluoh` branch if the package is not available.
 - Validate the checkout through `fluoh source validate`.
 
 Source validation belongs to the `fluoh` CLI.
 
-`.github/workflows/sync-source.yml` runs daily and also supports
+`.github/workflows/sync.yml` runs daily and also supports
 `workflow_dispatch` for temporary manual runs from GitHub Actions. It checks
 whether root `fluoh.yaml` declares manifest routes. If no routes exist, the
 workflow exits successfully without changing files. Once routes exist, it runs:

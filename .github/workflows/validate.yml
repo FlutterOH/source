@@ -23,23 +23,24 @@ jobs:
         with:
           path: source
 
-      - name: Checkout fluoh
-        uses: actions/checkout@v4
-        with:
-          repository: FlutterOH/fluoh
-          path: fluoh
-
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
-      - name: Install fluoh from source
-        working-directory: fluoh
-        run: dart pub global activate --source path . --overwrite
+      - name: Install fluoh
+        run: |
+          if dart pub global activate fluoh --overwrite; then
+            echo "Installed fluoh from pub.dev."
+          else
+            echo "pub.dev install failed; falling back to FlutterOH/fluoh default branch."
+            git clone --depth 1 https://github.com/FlutterOH/fluoh.git fluoh
+            dart pub global activate --source path fluoh --overwrite
+          fi
 
-      - name: Add pub cache bin to PATH
-        run: echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.pub-cache/bin:$PATH"
+          fluoh --version
 
       - name: Validate official source with fluoh
         working-directory: source

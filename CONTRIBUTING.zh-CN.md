@@ -154,7 +154,7 @@ packages:
 6. 提交 PR，说明 package name、适配仓库、上游仓库和 path、SDK line 或完整 SDK
    version、release tag 和校验结果。
 
-route 合并后，`.github/workflows/sync-source.yml` 会根据包仓库 tags 继续更新
+route 合并后，`.github/workflows/sync.yml` 会根据包仓库 tags 继续更新
 release records。route 已存在后如需手动刷新，运行：
 
 ```sh
@@ -209,14 +209,15 @@ fluoh source validate
 
 ## GitHub Workflow
 
-`.github/workflows/validate.yml` 使用当前 `fluoh` CLI 校验 checkout。它应聚焦源校验：
+`.github/workflows/validate.yml` 使用 `fluoh` 校验 checkout。它应聚焦源校验：
 
-- 安装或激活 `fluoh`。
+- 优先从 pub.dev 安装已发布的 `fluoh`；如果 package 不可用，再回退到
+  `FlutterOH/fluoh` 默认分支。
 - 通过 `fluoh source validate` 校验当前 checkout。
 
 Source validation 由 `fluoh` CLI 负责。
 
-`.github/workflows/sync-source.yml` 每天运行一次，并通过 `workflow_dispatch` 支持在
+`.github/workflows/sync.yml` 每天运行一次，并通过 `workflow_dispatch` 支持在
 GitHub Actions 中临时手动触发。它会先检查根 `fluoh.yaml` 是否声明 manifest routes。
 没有 route 时，workflow 成功退出且不改文件；有 route 后执行：
 

@@ -1,7 +1,7 @@
 # FlutterOH Source
 
 [![validate source](https://github.com/FlutterOH/source/actions/workflows/validate.yml/badge.svg)](https://github.com/FlutterOH/source/actions/workflows/validate.yml)
-[![sync source](https://github.com/FlutterOH/source/actions/workflows/sync-source.yml/badge.svg)](https://github.com/FlutterOH/source/actions/workflows/sync-source.yml)
+[![sync source](https://github.com/FlutterOH/source/actions/workflows/sync.yml/badge.svg)](https://github.com/FlutterOH/source/actions/workflows/sync.yml)
 [![License](https://img.shields.io/badge/license-see%20LICENSE-blue)](LICENSE)
 
 [English](README.md)

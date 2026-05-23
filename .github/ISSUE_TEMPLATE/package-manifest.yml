@@ -61,9 +61,9 @@ body:
   - type: textarea
     id: validation
     attributes:
-      label: Validation
-      description: List the source validation commands used for this manifest.
+      label: Validation, if available
+      description: List source validation commands already run for this manifest.
       placeholder: |
         fluoh source validate
     validations:
-      required: true
+      required: false
