@@ -37,6 +37,11 @@ no package data is valid.
 ```sh
 fluoh source update
 fluoh sdk list
+```
+
+From a Flutter project, select an SDK version or series:
+
+```sh
 fluoh sdk use 3.35
 ```
 
@@ -72,7 +77,8 @@ workflow files, and GitHub templates.
 
 ## Maintainer Workflow
 
-Maintain this repository with an installed `fluoh` or the sibling source checkout:
+Maintain this repository with an installed `fluoh` or the sibling `../fluoh`
+checkout:
 
 ```sh
 cd ../fluoh

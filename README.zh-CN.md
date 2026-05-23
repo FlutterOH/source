@@ -35,6 +35,11 @@ manifest。
 ```sh
 fluoh source update
 fluoh sdk list
+```
+
+在 Flutter 项目目录中选择 SDK 版本或版本线：
+
+```sh
 fluoh sdk use 3.35
 ```
 

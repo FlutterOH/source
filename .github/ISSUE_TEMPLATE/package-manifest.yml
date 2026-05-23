@@ -21,9 +21,9 @@ body:
   - type: input
     id: route
     attributes:
-      label: Manifest route
-      description: Path under `manifests/`.
-      placeholder: manifests/camera/fluoh.yaml
+      label: Manifest route name
+      description: Route name declared in root `fluoh.yaml`; it maps to `manifests/<route>/fluoh.yaml`.
+      placeholder: camera
     validations:
       required: true
   - type: input
