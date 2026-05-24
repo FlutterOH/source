@@ -78,10 +78,10 @@ Package manifest 是从包仓库 release 结果生成或整理出来的源数据
 - 包仓库已经有包仓库自己的 `fluoh.yaml`。
 - 包仓库记录了 FlutterOH 仓库 URL、上游 URL 和分支、package path、SDK version、
   已适配的 upstream version 和 release version。
-- 至少已经通过 `fluoh pub release` 发布一个 release tag。
+- 至少已经通过 `fluoh package release` 发布一个 release tag。
 
-不要把包代码、包 release tag、未确认的兼容性声明或未发布的 package metadata 加入
-本仓库。
+不要把包代码、包 release tag、未经发布流程确认的发布就绪声明或未发布的 package
+metadata 加入本仓库。
 
 预期 route 布局：
 
@@ -166,10 +166,10 @@ fluoh source validate
 之前的临时仓库侧刷新。
 
 首次 route PR 合并后，包维护者不需要每发布一个包版本都向 `FlutterOH/source` 提 PR。
-新包版本应在包仓库通过 `fluoh pub release` 发布；定时 sync workflow 可以导入这些
-tags。只有 release tag 无法表达的 metadata 变化才需要再次提交 source-data PR，例如
-route 调整、repository 或 package path 修正、advisory 文案、maintenance 状态或流程
-变化。
+新包版本应在包仓库通过 `fluoh package release` 发布；定时 sync workflow 可以导入
+这些 tags。只有 release tag 无法表达的 metadata 变化才需要再次提交 source-data PR，
+例如 route 调整、repository 或 package path 修正、advisory 文案、maintenance 状态或
+流程变化。
 
 ## 本地维护环境
 
@@ -205,7 +205,8 @@ fluoh sdk list
 fluoh source validate
 ```
 
-如果修改包 manifest，在包 release 可用后，还应确认示例项目可以消费对应 metadata。
+包测试和应用兼容性检查属于包仓库，应在 `fluoh package release` 前完成；本仓库只校验
+已发布的 source metadata。
 
 ## GitHub Workflow
 

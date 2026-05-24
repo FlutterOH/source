@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this only for package adaptations that already have published FlutterOH package release metadata from `fluoh pub release`.
+        Use this only for package adaptations that already have published FlutterOH package release metadata from `fluoh package release`.
         Adaptation code should stay in the package repository, not in `FlutterOH/source`.
         The first `FlutterOH/source` pull request must add both the root `fluoh.yaml` route and `manifests/<route>/fluoh.yaml`.
         After that route is merged, new package releases normally need only new package repository release tags; scheduled sync can import them without a new `FlutterOH/source` pull request.
@@ -51,7 +51,7 @@ body:
     id: releases
     attributes:
       label: Release records
-      description: List upstream versions, FlutterOH release versions, optional statuses, and `fluoh pub release` tags.
+      description: List upstream versions, FlutterOH release versions, optional statuses, and `fluoh package release` tags.
       placeholder: |
         upstreamVersion: 0.11.0
         version: 0.1.0

@@ -86,9 +86,9 @@ package repository has completed its own release workflow:
 - The package repository records the FlutterOH repository URL, upstream URL and
   branch, package paths, SDK version, adapted upstream version, and release
   version.
-- At least one release tag has been published with `fluoh pub release`.
+- At least one release tag has been published with `fluoh package release`.
 
-Do not add package code, package release tags, draft compatibility claims, or
+Do not add package code, package release tags, unverified readiness claims, or
 unreleased package metadata to this repository.
 
 Expected route layout:
@@ -178,11 +178,11 @@ an immediate repository-side refresh before the next scheduled run.
 
 Package maintainers do not need a new `FlutterOH/source` pull request for every
 package release after the first route pull request is merged. New package
-versions should be released in the package repository with `fluoh pub release`;
-the scheduled sync workflow can import those tags. Open another source-data pull
-request only for metadata changes that cannot be derived from release tags, such
-as route changes, repository or package path corrections, advisory text,
-maintenance state, or workflow changes.
+versions should be released in the package repository with
+`fluoh package release`; the scheduled sync workflow can import those tags.
+Open another source-data pull request only for metadata changes that cannot be
+derived from release tags, such as route changes, repository or package path
+corrections, advisory text, maintenance state, or workflow changes.
 
 ## Local Maintenance Setup
 
@@ -220,8 +220,9 @@ Before opening a pull request, run:
 fluoh source validate
 ```
 
-If package manifests are changed, verify that a sample project can consume the
-affected metadata after the package release is available.
+Package tests and app compatibility checks belong in the package repository
+before `fluoh package release`; this repository validates only released source
+metadata.
 
 ## GitHub Workflow
 
