@@ -23,7 +23,7 @@ fluoh sdk list
 在 Flutter 项目中选择 SDK：
 
 ```sh
-fluoh sdk use 3.35
+fluoh sdk use 3.35 --pub-get --init-ohos
 ```
 
 校验当前 checkout：

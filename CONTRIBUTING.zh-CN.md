@@ -78,6 +78,8 @@ Package manifest 是从包仓库 release 结果生成或整理出来的源数据
 - 包仓库已经有包仓库自己的 `fluoh.yaml`。
 - 包仓库记录了 FlutterOH 仓库 URL、上游 URL 和分支、package path、SDK version、
   已适配的 upstream version 和 release version。
+- 发布前已经通过 `fluoh package status` 查看发布就绪状态，并通过
+  `fluoh package check`。
 - 至少已经通过 `fluoh package release` 发布一个 release tag。
 
 不要把包代码、包 release tag、未经发布流程确认的发布就绪声明或未发布的 package
@@ -152,7 +154,7 @@ packages:
    package path、SDK line 和已发布 package release tag 对应的 records。
 5. 运行 `fluoh source validate`。
 6. 提交 PR，说明 package name、适配仓库、上游仓库和 path、SDK line 或完整 SDK
-   version、release tag 和校验结果。
+   version、release tag、package status/check 结果和 source 校验结果。
 
 route 合并后，`.github/workflows/sync.yml` 会根据包仓库 tags 继续更新
 release records。route 已存在后如需手动刷新，运行：
@@ -166,10 +168,10 @@ fluoh source validate
 之前的临时仓库侧刷新。
 
 首次 route PR 合并后，包维护者不需要每发布一个包版本都向 `FlutterOH/source` 提 PR。
-新包版本应在包仓库通过 `fluoh package release` 发布；定时 sync workflow 可以导入
-这些 tags。只有 release tag 无法表达的 metadata 变化才需要再次提交 source-data PR，
-例如 route 调整、repository 或 package path 修正、advisory 文案、maintenance 状态或
-流程变化。
+新包版本应在包仓库通过 `fluoh package status` 和 `fluoh package check` 后，再用
+`fluoh package release` 发布；定时 sync workflow 可以导入这些 tags。只有 release tag
+无法表达的 metadata 变化才需要再次提交 source-data PR，例如 route 调整、repository 或
+package path 修正、advisory 文案、maintenance 状态或流程变化。
 
 ## 本地维护环境
 
@@ -205,8 +207,8 @@ fluoh sdk list
 fluoh source validate
 ```
 
-包测试和应用兼容性检查属于包仓库，应在 `fluoh package release` 前完成；本仓库只校验
-已发布的 source metadata。
+包发布就绪检查、包测试和应用兼容性检查属于包仓库，应在 `fluoh package release` 前
+完成；本仓库只校验已发布的 source metadata。
 
 ## GitHub Workflow
 

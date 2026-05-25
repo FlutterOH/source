@@ -86,6 +86,8 @@ package repository has completed its own release workflow:
 - The package repository records the FlutterOH repository URL, upstream URL and
   branch, package paths, SDK version, adapted upstream version, and release
   version.
+- Release readiness has been reviewed with `fluoh package status`, and
+  `fluoh package check` passed before release.
 - At least one release tag has been published with `fluoh package release`.
 
 Do not add package code, package release tags, unverified readiness claims, or
@@ -162,7 +164,7 @@ First-time package intake uses a pull request to this repository:
 5. Run `fluoh source validate`.
 6. Open a pull request that lists the package name, package repository,
    upstream repository and path, SDK line or complete SDK version, release tag,
-   and validation result.
+   package status/check result, and source validation result.
 
 After the route is merged, `.github/workflows/sync.yml` can keep release
 records current from package repository tags. For manual refreshes after a route
@@ -179,7 +181,8 @@ an immediate repository-side refresh before the next scheduled run.
 Package maintainers do not need a new `FlutterOH/source` pull request for every
 package release after the first route pull request is merged. New package
 versions should be released in the package repository with
-`fluoh package release`; the scheduled sync workflow can import those tags.
+`fluoh package release` after `fluoh package status` and
+`fluoh package check`; the scheduled sync workflow can import those tags.
 Open another source-data pull request only for metadata changes that cannot be
 derived from release tags, such as route changes, repository or package path
 corrections, advisory text, maintenance state, or workflow changes.
@@ -220,9 +223,9 @@ Before opening a pull request, run:
 fluoh source validate
 ```
 
-Package tests and app compatibility checks belong in the package repository
-before `fluoh package release`; this repository validates only released source
-metadata.
+Package readiness checks, package tests, and app compatibility checks belong in
+the package repository before `fluoh package release`; this repository validates
+only released source metadata.
 
 ## GitHub Workflow
 

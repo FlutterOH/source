@@ -25,7 +25,7 @@ fluoh sdk list
 Select an SDK from a Flutter project:
 
 ```sh
-fluoh sdk use 3.35
+fluoh sdk use 3.35 --pub-get --init-ohos
 ```
 
 Validate this checkout:

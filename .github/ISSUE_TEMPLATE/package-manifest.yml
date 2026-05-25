@@ -8,6 +8,7 @@ body:
     attributes:
       value: |
         Use this only for package adaptations that already have published FlutterOH package release metadata from `fluoh package release`.
+        Check package readiness in the package repository with `fluoh package status` and `fluoh package check` before requesting source intake.
         Adaptation code should stay in the package repository, not in `FlutterOH/source`.
         The first `FlutterOH/source` pull request must add both the root `fluoh.yaml` route and `manifests/<route>/fluoh.yaml`.
         After that route is merged, new package releases normally need only new package repository release tags; scheduled sync can import them without a new `FlutterOH/source` pull request.
@@ -62,8 +63,10 @@ body:
     id: validation
     attributes:
       label: Validation, if available
-      description: List source validation commands already run for this manifest.
+      description: List package readiness/check commands and source validation already run for this manifest.
       placeholder: |
+        fluoh package status
+        fluoh package check
         fluoh source validate
     validations:
       required: false
