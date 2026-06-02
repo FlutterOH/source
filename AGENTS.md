@@ -10,7 +10,7 @@ Maintain and validate this repository with a released `fluoh` or the sibling `..
 ## Layout
 
 - `fluoh.yaml`: source root manifest, official SDK repository, and configured SDK versions.
-- `manifests/`: future package implementation manifests, one route per subdirectory.
+- `manifests/`: future package implementation manifests, one manifest name per subdirectory.
 - `.github/workflows/`: source validation and scheduled sync automation.
 - `.github/ISSUE_TEMPLATE/`: maintainer triage templates.
 - `.github/pull_request_template.md`: source-data PR checklist.
@@ -22,8 +22,8 @@ Maintain and validate this repository with a released `fluoh` or the sibling `..
 - Use the current `fluoh.yaml` source-root schema.
 - Keep repository contents limited to the current source layout, documentation, workflow files, and GitHub templates.
 - Add only SDK versions that exist as SDK repository tags and should be visible through `fluoh sdk list`.
-- Add a package manifest route only when `manifests/<route>/fluoh.yaml` exists and is ready for official consumption.
-- Use `fluoh source sync` to refresh release records from existing package routes; edit route metadata, advisory text, and maintenance notes directly in manifest YAML.
+- Add a package manifest only when `manifests/<manifest-name>/fluoh.yaml` exists and is ready for official consumption.
+- Use `fluoh source sync` to refresh release records from existing package manifests; edit manifest metadata, advisory text, and maintenance notes directly in manifest YAML.
 - Keep README, contributing docs, workflow files, issue templates, and PR templates aligned when the maintenance process changes.
 - Do not add repo-local validation tools unless `fluoh` no longer owns source validation.
 - Do not commit credentials, local caches, `.DS_Store`, generated build output, or machine-specific paths.

@@ -57,7 +57,7 @@ Rules:
 - `sdk.git.url` is the FlutterOH SDK repository.
 - `sdk.versions` contains complete installable SDK tags.
 - `manifests` is absent while no package manifests are included. When present,
-  each route maps to `manifests/<name>/fluoh.yaml`.
+  each manifest entry maps to `manifests/<name>/fluoh.yaml`.
 
 Keep repository contents limited to the current source layout, documentation,
 workflow files, and GitHub templates.
@@ -94,7 +94,7 @@ package repository has completed its own release workflow:
 Do not add package code, package release tags, unverified readiness claims, or
 unreleased package metadata to this repository.
 
-Expected route layout:
+Expected manifest layout:
 
 ```text
 manifests/
@@ -103,7 +103,7 @@ manifests/
 ```
 
 Manifest files use `kind: manifest`, and the manifest `name` must match the
-root route:
+root manifest entry:
 
 ```yaml
 schema: 1
@@ -134,8 +134,8 @@ packages:
 
 Rules:
 
-- Add a root `manifests` route only when the manifest file exists and validates.
-- A package name must appear in only one manifest route.
+- Add a root `manifests` entry only when the manifest file exists and validates.
+- A package name must appear in only one official manifest.
 - Omit release `status` for normal published records. Use `experimental` or
   `broken` only for published records that should not be recommended by default.
 - Use `maintenance` and `advisory` for package-level guidance; do not invent
@@ -143,50 +143,53 @@ Rules:
 - Package adaptation code and release tags remain in the package repository.
 
 Use `fluoh source sync` to refresh release records from package repositories
-when routes already exist and point at released package repos. Edit manifest
-files directly for route metadata, advisory text, and frozen maintenance notes.
-`fluoh source sync` does not discover new official routes by itself; the first
-pull request for a package must add both the root route and the matching
-`manifests/<route>/fluoh.yaml`.
+when manifests already exist and point at released package repos. Edit manifest
+files directly for manifest metadata, advisory text, and frozen maintenance
+notes. `fluoh source sync` does not discover new official manifests by itself;
+the first pull request for a package must add both the root manifest entry and
+the matching `manifests/<manifest-name>/fluoh.yaml`.
 
 First-time package intake uses a pull request to this repository:
 
 1. Fork or clone `FlutterOH/source`.
-2. Choose a stable route name, normally the package name or package group name.
-3. Add the route to root `fluoh.yaml`:
+2. Choose a stable manifest name, normally the package name or package group
+   name.
+3. Add the manifest entry to root `fluoh.yaml`:
 
    ```yaml
    manifests:
      - name: camera
    ```
 
-4. Create `manifests/<route>/fluoh.yaml` with repository, upstream, package
+4. Create `manifests/<manifest-name>/fluoh.yaml` with repository, upstream, package
    paths, SDK line, and records from published package release tags.
-5. Run `fluoh source validate`.
-6. Open a pull request that lists the package name, package repository,
-   upstream repository and path, SDK line or complete SDK version, release tag,
-   package status/check result, and source validation result.
+5. Run `fluoh source validate` and `git diff --check`.
+6. Open a pull request that lists the manifest name, package repository,
+   published release tag, and source validation result. Upstream paths, SDK
+   lines, and release records should be verifiable from the manifest diff and
+   the published package release tag.
 
-After the route is merged, `.github/workflows/sync.yml` can keep release
-records current from package repository tags. For manual refreshes after a route
-exists, run:
+After the manifest is merged, `.github/workflows/sync.yml` can keep release
+records current from package repository tags. For manual refreshes after a
+manifest exists, run:
 
 ```sh
 fluoh source sync .
 fluoh source validate
+git diff --check
 ```
 
 Maintainers can also trigger the `sync source` workflow from GitHub Actions for
 an immediate repository-side refresh before the next scheduled run.
 
 Package maintainers do not need a new `FlutterOH/source` pull request for every
-package release after the first route pull request is merged. New package
+package release after the first manifest pull request is merged. New package
 versions should be released in the package repository with
 `fluoh package release` after `fluoh package status` and
 `fluoh package check`; the scheduled sync workflow can import those tags.
 Open another source-data pull request only for metadata changes that cannot be
-derived from release tags, such as route changes, repository or package path
-corrections, advisory text, maintenance state, or workflow changes.
+derived from release tags, such as manifest name changes, repository or package
+path corrections, advisory text, maintenance state, or workflow changes.
 
 ## Local Maintenance Setup
 
@@ -222,6 +225,7 @@ Before opening a pull request, run:
 
 ```sh
 fluoh source validate
+git diff --check
 ```
 
 Package readiness checks, package tests, and app compatibility checks belong in
@@ -241,12 +245,13 @@ Source validation belongs to the `fluoh` CLI.
 
 `.github/workflows/sync.yml` runs daily and also supports
 `workflow_dispatch` for temporary manual runs from GitHub Actions. It checks
-whether root `fluoh.yaml` declares manifest routes. If no routes exist, the
-workflow exits successfully without changing files. Once routes exist, it runs:
+whether root `fluoh.yaml` declares manifests. If no manifests exist, the
+workflow exits successfully without changing files. Once manifests exist, it runs:
 
 ```sh
 fluoh source sync .
 fluoh source validate
+git diff --check
 ```
 
 When sync changes source data, the workflow commits directly to `main`.
@@ -257,7 +262,7 @@ Pull requests should describe:
 
 - User-visible source data changes.
 - Added or removed SDK versions.
-- Added, removed, or changed package manifest routes.
+- Added, removed, or changed package manifests.
 - Validation commands and results.
 - Any maintainer workflow, issue template, PR template, or CI impact.
 
@@ -267,7 +272,7 @@ Keep commits focused. Conventional Commits are preferred:
 docs: refresh official source maintenance guide
 ci: validate source with fluoh
 feat(sdk): add 3.35.8-ohos-0.0.4
-feat(source): add camera manifest route
+feat(source): add camera manifest
 ```
 
 Do not commit credentials, local caches, `.DS_Store`, generated build output,

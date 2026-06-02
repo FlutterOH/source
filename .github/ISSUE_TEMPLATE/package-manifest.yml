@@ -1,29 +1,33 @@
-name: Package manifest update
-description: Request adding or changing an official package implementation manifest.
-title: "[Package] "
+name: Package manifest intake
+description: Request adding an official package manifest for the first time.
+title: "[Package intake] "
 labels:
   - packages
 body:
   - type: markdown
     attributes:
       value: |
-        Use this only for package adaptations that already have published FlutterOH package release metadata from `fluoh package release`.
-        Check package readiness in the package repository with `fluoh package status` and `fluoh package check` before requesting source intake.
+        Use this only for first-time source intake after the package repository already has published FlutterOH package release metadata from `fluoh package release`.
+        For corrections to existing package manifests, advisory text, maintenance state, repository paths, or sync behavior, use the Source data issue template instead.
+        Use title format: `[Package intake] <package-name>`, for example `[Package intake] camera`.
+        Provide only the manifest name, package name, package repository, and published release tag. Reviewers or automation can use those values to fetch and verify release metadata.
+        The manifest name is declared in root `fluoh.yaml` and in the manifest file; it is usually the package name. For example, `camera` maps to `manifests/camera/fluoh.yaml`.
+        In-progress or unfinished adaptations should stay in the package repository and should not be added to the official source.
         Adaptation code should stay in the package repository, not in `FlutterOH/source`.
-        The first `FlutterOH/source` pull request must add both the root `fluoh.yaml` route and `manifests/<route>/fluoh.yaml`.
-        After that route is merged, new package releases normally need only new package repository release tags; scheduled sync can import them without a new `FlutterOH/source` pull request.
+        The first `FlutterOH/source` pull request must add both the root `fluoh.yaml` manifest entry and `manifests/<manifest-name>/fluoh.yaml`.
+        After the first manifest pull request is merged, new package releases normally need only new package repository release tags; scheduled sync can import them without a new `FlutterOH/source` pull request.
   - type: input
-    id: package
+    id: manifest-name
     attributes:
-      label: Package name
+      label: Manifest name
+      description: Name declared in root `fluoh.yaml` and in the manifest file, usually the package name. For example, `camera` maps to `manifests/camera/fluoh.yaml`.
       placeholder: camera
     validations:
       required: true
   - type: input
-    id: route
+    id: package
     attributes:
-      label: Manifest route name
-      description: Route name declared in root `fluoh.yaml`; it maps to `manifests/<route>/fluoh.yaml`.
+      label: Package name
       placeholder: camera
     validations:
       required: true
@@ -35,38 +39,33 @@ body:
     validations:
       required: true
   - type: input
-    id: upstream
+    id: release-tag
     attributes:
-      label: Upstream repository and package path
-      placeholder: https://github.com/flutter/packages.git, packages/camera/camera
+      label: Published release tag
+      description: Tag created by `fluoh package release`.
+      placeholder: camera-0.11.0-ohos-3.35-0.1.0
     validations:
       required: true
-  - type: input
-    id: sdk
+  - type: checkboxes
+    id: basic-checks
     attributes:
-      label: SDK line or complete SDK version
-      placeholder: 3.35 or 3.35.8-ohos-1.0.1
-    validations:
-      required: true
+      label: Basic checks
+      description: Confirm the request is ready for source intake before reviewers or automation re-check it.
+      options:
+        - label: The release tag was created by `fluoh package release` and points to the intended package release.
+          required: true
+        - label: The package repository contains its package-owned `fluoh.yaml` at the published release tag.
+          required: true
+        - label: This is not an in-progress or unfinished adaptation.
+          required: true
+        - label: This request only asks for official source metadata; package adaptation code remains outside `FlutterOH/source`.
+          required: true
   - type: textarea
-    id: releases
+    id: notes
     attributes:
-      label: Release records
-      description: List upstream versions, FlutterOH release versions, optional statuses, and `fluoh package release` tags.
+      label: Notes
+      description: Optional context for reviewers, such as known warnings, advisory text, or related package repository PRs.
       placeholder: |
-        upstreamVersion: 0.11.0
-        version: 0.1.0
-        tag: camera-0.11.0-ohos-3.35-0.1.0
-    validations:
-      required: true
-  - type: textarea
-    id: validation
-    attributes:
-      label: Validation, if available
-      description: List package readiness/check commands and source validation already run for this manifest.
-      placeholder: |
-        fluoh package status
-        fluoh package check
-        fluoh source validate
+        Optional maintainer notes.
     validations:
       required: false

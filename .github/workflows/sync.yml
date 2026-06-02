@@ -42,8 +42,8 @@ jobs:
           export PATH="$HOME/.pub-cache/bin:$PATH"
           fluoh --version
 
-      - name: Check manifest routes
-        id: routes
+      - name: Check manifests
+        id: manifests
         working-directory: source
         run: |
           ruby <<'RUBY'
@@ -51,33 +51,33 @@ jobs:
 
           root = YAML.load_file("fluoh.yaml")
           manifests = root["manifests"]
-          has_routes = manifests.is_a?(Array) && manifests.any?
+          has_manifests = manifests.is_a?(Array) && manifests.any?
 
           File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |output|
-            output.puts("has_routes=#{has_routes}")
+            output.puts("has_manifests=#{has_manifests}")
           end
 
-          if has_routes
-            puts "Manifest routes found; source sync will run."
+          if has_manifests
+            puts "Manifests found; source sync will run."
           else
-            puts "No manifest routes configured; source sync is not needed."
+            puts "No manifests configured; source sync is not needed."
           end
           RUBY
 
       - name: Sync package release records
-        if: steps.routes.outputs.has_routes == 'true'
+        if: steps.manifests.outputs.has_manifests == 'true'
         working-directory: source
         run: fluoh source sync .
 
       - name: Validate synced source
-        if: steps.routes.outputs.has_routes == 'true'
+        if: steps.manifests.outputs.has_manifests == 'true'
         working-directory: source
         run: |
           fluoh source validate
           git diff --check
 
       - name: Commit synced source to main
-        if: steps.routes.outputs.has_routes == 'true'
+        if: steps.manifests.outputs.has_manifests == 'true'
         working-directory: source
         run: |
           if git diff --quiet; then
