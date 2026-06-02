@@ -34,10 +34,10 @@ fluoh source validate
 
 ## 当前数据
 
-- SDK 仓库：`https://gitcode.com/openharmony-tpc/flutter_flutter.git`
+- SDK 仓库：`https://gitcode.com/CPF-Flutter/flutter_flutter.git`
 - SDK 版本：
+  - `3.35.8-ohos-1.0.1`
   - `3.35.8-ohos-0.0.3`
-  - `3.35.8-ohos-0.0.2`
 - 包 manifest：暂无
 
 源契约从 [`fluoh.yaml`](fluoh.yaml) 开始。使用者应通过 `fluoh source` 命令读取，

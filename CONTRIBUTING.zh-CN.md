@@ -39,8 +39,9 @@ environment:
 
 sdk:
   git:
-    url: https://gitcode.com/openharmony-tpc/flutter_flutter.git
+    url: https://gitcode.com/CPF-Flutter/flutter_flutter.git
   versions:
+    - 3.35.8-ohos-1.0.1
     - 3.35.8-ohos-0.0.3
 ```
 
@@ -62,7 +63,7 @@ sdk:
 
 - tag 存在于 `sdk.git.url`。
 - 该版本应该通过 `fluoh sdk list` 对用户可见。
-- 版本是完整 SDK tag，例如 `3.35.8-ohos-0.0.3`。
+- 版本是完整 SDK tag，例如 `3.35.8-ohos-1.0.1`。
 - 文档和 issue/PR 模板不需要流程变更，或已在同一个 PR 中同步更新。
 
 版本列表应保持稳定、可重复。如果后续同一 SDK line 包含多个 patch，优先把较新版本

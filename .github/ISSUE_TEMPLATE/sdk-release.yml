@@ -9,14 +9,14 @@ body:
     attributes:
       label: SDK version tag
       description: Complete FlutterOH SDK tag.
-      placeholder: 3.35.8-ohos-0.0.3
+      placeholder: 3.35.8-ohos-1.0.1
     validations:
       required: true
   - type: input
     id: repository
     attributes:
       label: SDK repository
-      placeholder: https://gitcode.com/openharmony-tpc/flutter_flutter.git
+      placeholder: https://gitcode.com/CPF-Flutter/flutter_flutter.git
     validations:
       required: true
   - type: dropdown

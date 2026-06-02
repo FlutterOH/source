@@ -43,8 +43,9 @@ environment:
 
 sdk:
   git:
-    url: https://gitcode.com/openharmony-tpc/flutter_flutter.git
+    url: https://gitcode.com/CPF-Flutter/flutter_flutter.git
   versions:
+    - 3.35.8-ohos-1.0.1
     - 3.35.8-ohos-0.0.3
 ```
 
@@ -67,7 +68,7 @@ Only add SDK versions that satisfy all of the following:
 
 - The tag exists in `sdk.git.url`.
 - The version is intended to be visible in `fluoh sdk list`.
-- The version is a complete SDK tag, for example `3.35.8-ohos-0.0.3`.
+- The version is a complete SDK tag, for example `3.35.8-ohos-1.0.1`.
 - Documentation and issue/PR templates do not need workflow changes, or they
   are updated in the same pull request.
 

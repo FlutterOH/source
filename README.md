@@ -36,10 +36,10 @@ fluoh source validate
 
 ## Current Data
 
-- SDK repository: `https://gitcode.com/openharmony-tpc/flutter_flutter.git`
+- SDK repository: `https://gitcode.com/CPF-Flutter/flutter_flutter.git`
 - SDK versions:
+  - `3.35.8-ohos-1.0.1`
   - `3.35.8-ohos-0.0.3`
-  - `3.35.8-ohos-0.0.2`
 - Package manifests: none yet
 
 The source contract starts at [`fluoh.yaml`](fluoh.yaml). Consumers should use
