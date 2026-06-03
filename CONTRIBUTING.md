@@ -163,9 +163,9 @@ First-time package intake uses a pull request to this repository:
 
 4. Create `manifests/<manifest-name>/fluoh.yaml` with repository, upstream, package
    paths, SDK line, and records from published package release tags.
-5. Run `fluoh source validate` and `git diff --check`.
+5. Run `fluoh source check .` and `git diff --check`.
 6. Open a pull request that lists the manifest name, package repository,
-   published release tag, and source validation result. Upstream paths, SDK
+   published release tag, and source check result. Upstream paths, SDK
    lines, and release records should be verifiable from the manifest diff and
    the published package release tag.
 
@@ -175,9 +175,13 @@ manifest exists, run:
 
 ```sh
 fluoh source sync .
-fluoh source validate
+fluoh source check --skip-release-checks .
 git diff --check
 ```
+
+This validates the dirty source snapshot produced by sync. Release-record
+verification requires a committed diff; after committing the sync result, run
+`fluoh source check --base-ref <base> .` locally or let pull request CI run it.
 
 Maintainers can also trigger the `sync source` workflow from GitHub Actions for
 an immediate repository-side refresh before the next scheduled run.
@@ -210,7 +214,7 @@ files directly.
 For routine local validation from this repository:
 
 ```sh
-fluoh source validate
+fluoh source check .
 ```
 
 Only add a local source when consumer commands should use this checkout. Local
@@ -224,24 +228,31 @@ fluoh sdk list
 Before opening a pull request, run:
 
 ```sh
-fluoh source validate
+fluoh source check .
 git diff --check
 ```
 
 Package readiness checks, package tests, and app compatibility checks belong in
 the package repository before `fluoh package release`; this repository validates
-only released source metadata.
+only released source metadata through `fluoh source check`.
 
 ## GitHub Workflow
 
-`.github/workflows/validate.yml` validates the checked-out source with `fluoh`.
-It should remain focused on source validation:
+`.github/workflows/validate.yml` checks the checked-out source with `fluoh`.
+It should remain focused on source checking:
 
 - Install the released `fluoh` from pub.dev, falling back to the default
   `FlutterOH/fluoh` branch if the package is not available.
-- Validate the checkout through `fluoh source validate`.
+- Check pull requests through `fluoh source check --base-ref <base> .` so
+  SDK tag and package release verification stay limited to changed source data.
+- Check pushes to `main` through
+  `fluoh source check --base-ref <before> --skip-release-checks .` so direct
+  source-data pushes still validate changed SDK tags without cloning package
+  release repositories. PRs remain the package release-verification gate.
+- Check manual `workflow_dispatch` runs through
+  `fluoh source check --skip-release-checks .` as a source snapshot check.
 
-Source validation belongs to the `fluoh` CLI.
+Source checking belongs to the `fluoh` CLI.
 
 `.github/workflows/sync.yml` runs daily and also supports
 `workflow_dispatch` for temporary manual runs from GitHub Actions. It checks
@@ -250,11 +261,15 @@ workflow exits successfully without changing files. Once manifests exist, it run
 
 ```sh
 fluoh source sync .
-fluoh source validate
+fluoh source check --skip-release-checks .
 git diff --check
 ```
 
-When sync changes source data, the workflow commits directly to `main`.
+When sync changes source data, the workflow commits directly to `main` after
+running `fluoh source check --base-ref origin/main .` on the generated commit,
+which verifies only the release records imported by the sync diff.
+Use `fluoh source check --all .` only for explicit manual audits, not routine
+CI, because official sources can contain many package manifests.
 
 ## Pull Requests
 

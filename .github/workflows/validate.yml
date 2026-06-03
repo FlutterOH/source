@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: source
+          fetch-depth: 0
 
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
@@ -30,18 +31,40 @@ jobs:
 
       - name: Install fluoh
         run: |
+          install_fluoh_from_source() {
+            if [ ! -d fluoh ]; then
+              git clone --depth 1 https://github.com/FlutterOH/fluoh.git fluoh
+            fi
+            dart pub global activate --source path fluoh --overwrite
+          }
+
           if dart pub global activate fluoh --overwrite; then
             echo "Installed fluoh from pub.dev."
           else
             echo "pub.dev install failed; falling back to FlutterOH/fluoh default branch."
-            git clone --depth 1 https://github.com/FlutterOH/fluoh.git fluoh
-            dart pub global activate --source path fluoh --overwrite
+            install_fluoh_from_source
           fi
 
           echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.pub-cache/bin:$PATH"
           fluoh --version
 
-      - name: Validate official source
+      - name: Check official source
         working-directory: source
-        run: fluoh source validate
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request)
+              fluoh source check --base-ref "origin/${{ github.base_ref }}" .
+              ;;
+            push)
+              before_ref="${{ github.event.before }}"
+              if [ -n "$before_ref" ] && [ "$before_ref" != "0000000000000000000000000000000000000000" ]; then
+                fluoh source check --base-ref "$before_ref" --skip-release-checks .
+              else
+                fluoh source check --skip-release-checks .
+              fi
+              ;;
+            *)
+              fluoh source check --skip-release-checks .
+              ;;
+          esac

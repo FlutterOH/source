@@ -33,7 +33,7 @@ Maintain and validate this repository with a released `fluoh` or the sibling `..
 Use a released or locally built `fluoh`:
 
 ```sh
-fluoh source validate
+fluoh source check .
 ```
 
 Only add a local source when consumer commands should use this checkout. Local

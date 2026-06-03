@@ -154,8 +154,8 @@ packages:
 
 4. 创建 `manifests/<manifest-name>/fluoh.yaml`，写入 package repository、upstream、
    package path、SDK line 和已发布 package release tag 对应的 records。
-5. 运行 `fluoh source validate` 和 `git diff --check`。
-6. 提交 PR，说明 manifest name、适配仓库、已发布 release tag 和 source 校验结果。
+5. 运行 `fluoh source check .` 和 `git diff --check`。
+6. 提交 PR，说明 manifest name、适配仓库、已发布 release tag 和 source check 结果。
    上游路径、SDK line 和 release records 应能从 manifest diff 和已发布 package
    release tag 中复核。
 
@@ -164,9 +164,13 @@ release records。manifest 已存在后如需手动刷新，运行：
 
 ```sh
 fluoh source sync .
-fluoh source validate
+fluoh source check --skip-release-checks .
 git diff --check
 ```
+
+这一步校验 sync 生成的 dirty source snapshot。Release-record verification 需要基于已提交
+diff；提交 sync 结果后，可以本地运行 `fluoh source check --base-ref <base> .`，或交给
+pull request CI 执行。
 
 维护者也可以在 GitHub Actions 中手动触发 `sync source` workflow，用于下一次定时任务
 之前的临时仓库侧刷新。
@@ -194,7 +198,7 @@ fluoh --version
 日常本地校验：
 
 ```sh
-fluoh source validate
+fluoh source check .
 ```
 
 只有需要让 consumer commands 使用当前 checkout 时，才添加本地源。本地源是快照；
@@ -208,22 +212,29 @@ fluoh sdk list
 提交 PR 前运行：
 
 ```sh
-fluoh source validate
+fluoh source check .
 git diff --check
 ```
 
 包发布就绪检查、包测试和应用兼容性检查属于包仓库，应在 `fluoh package release` 前
-完成；本仓库只校验已发布的 source metadata。
+完成；本仓库通过 `fluoh source check` 校验已发布的 source metadata。
 
 ## GitHub Workflow
 
-`.github/workflows/validate.yml` 使用 `fluoh` 校验 checkout。它应聚焦源校验：
+`.github/workflows/validate.yml` 使用 `fluoh` 检查 checkout。它应聚焦源检查：
 
 - 优先从 pub.dev 安装已发布的 `fluoh`；如果 package 不可用，再回退到
   `FlutterOH/fluoh` 默认分支。
-- 通过 `fluoh source validate` 校验当前 checkout。
+- PR 通过 `fluoh source check --base-ref <base> .` 检查，让 package release
+  和 SDK tag verification 限制在变更的 source data。
+- push 到 `main` 时通过
+  `fluoh source check --base-ref <before> --skip-release-checks .` 检查，直接
+  push 的源数据变更仍会校验变更的 SDK tags，但不会 clone package release 仓库。
+  PR 仍是 package release verification gate。
+- 手动 `workflow_dispatch` 通过 `fluoh source check --skip-release-checks .`
+  作为 source snapshot check。
 
-Source validation 由 `fluoh` CLI 负责。
+Source checking 由 `fluoh` CLI 负责。
 
 `.github/workflows/sync.yml` 每天运行一次，并通过 `workflow_dispatch` 支持在
 GitHub Actions 中临时手动触发。它会先检查根 `fluoh.yaml` 是否声明 manifests。
@@ -231,11 +242,15 @@ GitHub Actions 中临时手动触发。它会先检查根 `fluoh.yaml` 是否声
 
 ```sh
 fluoh source sync .
-fluoh source validate
+fluoh source check --skip-release-checks .
 git diff --check
 ```
 
-如果 sync 产生源数据变更，workflow 会直接提交到 `main`。
+如果 sync 产生源数据变更，workflow 会先在生成的 commit 上运行
+`fluoh source check --base-ref origin/main .`，只校验本次 sync diff 导入的
+release records，再直接提交到 `main`。
+`fluoh source check --all .` 只用于明确的人工全量审计，不作为常规 CI 路径，
+因为官方 source 可能包含大量 package manifests。
 
 ## Pull Requests
 

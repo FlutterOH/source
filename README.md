@@ -28,10 +28,10 @@ Select an SDK from a Flutter project:
 fluoh sdk use 3.35 --pub-get --init-ohos
 ```
 
-Validate this checkout:
+Check this checkout:
 
 ```sh
-fluoh source validate
+fluoh source check .
 ```
 
 ## Current Data

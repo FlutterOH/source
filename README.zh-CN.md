@@ -26,10 +26,10 @@ fluoh sdk list
 fluoh sdk use 3.35 --pub-get --init-ohos
 ```
 
-校验当前 checkout：
+检查当前 checkout：
 
 ```sh
-fluoh source validate
+fluoh source check .
 ```
 
 ## 当前数据

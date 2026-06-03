@@ -26,9 +26,9 @@ Use one of:
 - Package repository:
 - Published release tag:
 
-## Source Validation
+## Source Check
 
-- [ ] Source data changes pass `fluoh source validate`.
+- [ ] Source data changes pass `fluoh source check .`.
 - [ ] Whitespace and patch formatting pass `git diff --check`.
 
 ## SDK Release (if applicable)
@@ -56,7 +56,7 @@ Use one of:
 Run in this source repository:
 
 ```sh
-fluoh source validate
+fluoh source check .
 git diff --check
 ```
 
@@ -64,8 +64,12 @@ For existing package manifest release-record refreshes, also run in this source 
 
 ```sh
 fluoh source sync .
-fluoh source validate
+fluoh source check --skip-release-checks .
+git diff --check
 ```
+
+Release-record verification runs from the committed PR diff in CI with
+`fluoh source check --base-ref <base> .`.
 
 For first-time package manifest PRs, provide the package release locator:
 

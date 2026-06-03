@@ -30,12 +30,18 @@ jobs:
 
       - name: Install fluoh
         run: |
+          install_fluoh_from_source() {
+            if [ ! -d fluoh ]; then
+              git clone --depth 1 https://github.com/FlutterOH/fluoh.git fluoh
+            fi
+            dart pub global activate --source path fluoh --overwrite
+          }
+
           if dart pub global activate fluoh --overwrite; then
             echo "Installed fluoh from pub.dev."
           else
             echo "pub.dev install failed; falling back to FlutterOH/fluoh default branch."
-            git clone --depth 1 https://github.com/FlutterOH/fluoh.git fluoh
-            dart pub global activate --source path fluoh --overwrite
+            install_fluoh_from_source
           fi
 
           echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
@@ -69,11 +75,11 @@ jobs:
         working-directory: source
         run: fluoh source sync .
 
-      - name: Validate synced source
+      - name: Check synced source data
         if: steps.manifests.outputs.has_manifests == 'true'
         working-directory: source
         run: |
-          fluoh source validate
+          fluoh source check --skip-release-checks .
           git diff --check
 
       - name: Commit synced source to main
@@ -90,6 +96,6 @@ jobs:
           git add fluoh.yaml manifests
           git commit -m "chore: sync source data"
           git pull --rebase origin main
-          fluoh source validate
+          fluoh source check --base-ref origin/main .
           git diff --check origin/main...HEAD
           git push origin HEAD:main

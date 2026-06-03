@@ -45,6 +45,6 @@ body:
       description: Include file paths, source snippets, command output, tags, or workflow links.
       placeholder: |
         fluoh source sync .
-        fluoh source validate
+        fluoh source check --skip-release-checks .
     validations:
       required: false
