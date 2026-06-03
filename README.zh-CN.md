@@ -1,53 +1,124 @@
-# FlutterOH Source
+<h1 align="center">FlutterOH Source</h1>
 
-[![validate source](https://github.com/FlutterOH/source/actions/workflows/validate.yml/badge.svg)](https://github.com/FlutterOH/source/actions/workflows/validate.yml)
-[![sync source](https://github.com/FlutterOH/source/actions/workflows/sync.yml/badge.svg)](https://github.com/FlutterOH/source/actions/workflows/sync.yml)
-[![License](https://img.shields.io/badge/license-see%20LICENSE-blue)](LICENSE)
+<p align="center">
+  <a href="https://github.com/FlutterOH/fluoh">fluoh</a> 消费的官方 source 数据。
+</p>
 
-[English](README.md)
+<p align="center">
+  <a href="https://github.com/FlutterOH/source/actions/workflows/validate.yml"><img src="https://github.com/FlutterOH/source/actions/workflows/validate.yml/badge.svg" alt="validate source"></a>
+  <a href="https://github.com/FlutterOH/source/actions/workflows/sync.yml"><img src="https://github.com/FlutterOH/source/actions/workflows/sync.yml/badge.svg" alt="sync source"></a>
+  <img src="https://img.shields.io/badge/source%20schema-1-blue" alt="source schema 1">
+  <img src="https://img.shields.io/badge/fluoh-%3E%3D0.1.0-6f42c1" alt="fluoh >=0.1.0">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
+</p>
 
-`fluoh` 的官方源数据仓库。
+<p align="center">
+  <a href="#快速开始">快速开始</a> ·
+  <a href="#source-数据">Source 数据</a> ·
+  <a href="#维护">维护</a> ·
+  <a href="CONTRIBUTING.zh-CN.md">贡献指南</a> ·
+  <a href="README.md">English</a>
+</p>
 
-本仓库当前发布 FlutterOH SDK metadata；后续在包适配准备好后发布官方包实现
-manifest。这里不是包适配仓库，也不保存 SDK 二进制、包代码或 `fluoh` CLI 实现。
+## 快速开始
 
-## 使用
+`fluoh` 默认使用这个官方 source，大多数用户不需要 clone 本仓库。
 
-`fluoh` 默认使用这个官方源：
+刷新 source metadata 并查看可用 FlutterOH SDK 版本：
 
 ```sh
 fluoh source update
 fluoh sdk list
 ```
 
-在 Flutter 项目中选择 SDK：
+在 Flutter 项目中选择 FlutterOH SDK line：
 
 ```sh
 fluoh sdk use 3.35 --pub-get --init-ohos
 ```
 
-检查当前 checkout：
+通过已选择的 FlutterOH SDK 运行 Flutter：
+
+```sh
+fluohf pub get
+fluohf run
+fluohf build hap
+```
+
+如果目标是适配 App 或 Package，请从
+[`fluoh`](https://github.com/FlutterOH/fluoh) CLI 和 AI skill 开始。本仓库只发布
+`fluoh` 读取的 source records。
+
+## Source 数据
+
+源契约从 [`fluoh.yaml`](fluoh.yaml) 开始。
+
+| 数据 | 当前状态 | 使用方 |
+| --- | --- | --- |
+| SDK 仓库 | `https://gitcode.com/CPF-Flutter/flutter_flutter.git` | `fluoh sdk` 命令 |
+| SDK 版本 | `3.35.8-ohos-1.0.1`、`3.35.8-ohos-0.0.3` | `fluoh sdk list` 和 `fluoh sdk use` |
+| Package manifests | 暂无 | 后续官方 package implementation lookup |
+
+本仓库刻意保持 source-data focused。这里不保存 SDK 二进制、包适配代码、包 release
+tags、本地 caches，也不实现 `fluoh` CLI。
+
+## 仓库结构
+
+- [`fluoh.yaml`](fluoh.yaml)：source root manifest、SDK 仓库和官方 SDK 版本。
+- `manifests/`：后续官方包适配准备好后，以 `manifests/<manifest-name>/fluoh.yaml`
+  形式保存 package implementation manifests。
+- `.github/workflows/`：source validation 和定时 sync automation。
+- `.github/ISSUE_TEMPLATE/`：SDK release 和 package manifest triage templates。
+- [`CONTRIBUTING.zh-CN.md`](CONTRIBUTING.zh-CN.md)：维护流程、source schema 规则、
+  package manifest 接入和 CI 期望。
+
+## 维护
+
+使用已发布的 `fluoh`，或在同时开发两个仓库时激活同级源码 checkout：
+
+```sh
+cd ../fluoh
+dart pub global activate --source path . --overwrite
+cd ../source
+fluoh --version
+```
+
+修改 source 文件后校验当前 checkout：
 
 ```sh
 fluoh source check .
 ```
 
-## 当前数据
+只有需要让 consumer commands 使用当前 checkout 时，才添加本地 source。本地 source
+是快照，每次 source 变更后都需要重新添加：
 
-- SDK 仓库：`https://gitcode.com/CPF-Flutter/flutter_flutter.git`
-- SDK 版本：
-  - `3.35.8-ohos-1.0.1`
-  - `3.35.8-ohos-0.0.3`
-- 包 manifest：暂无
+```sh
+fluoh source add local .
+fluoh sdk list
+```
 
-源契约从 [`fluoh.yaml`](fluoh.yaml) 开始。使用者应通过 `fluoh source` 命令读取，
-不应依赖仓库内部路径。
+当 package manifests 存在后，维护者可以从包仓库刷新已发布 package records：
 
-## 贡献
+```sh
+fluoh source sync .
+fluoh source check --skip-release-checks .
+git diff --check
+```
 
-SDK 更新规则、包 manifest 接入、本地维护环境和 CI 期望请见
-[CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)。
+提交 PR 前还需要运行：
 
-## License
+```sh
+git status --short --ignored=matching
+git diff --check
+```
 
-See [LICENSE](LICENSE).
+## 链接
+
+- [`fluoh` CLI 和 AI skill](https://github.com/FlutterOH/fluoh)
+- [`fluoh` 命令参考](https://github.com/FlutterOH/fluoh/blob/main/doc/commands.zh-CN.md)
+- [`fluoh` source schema](https://github.com/FlutterOH/fluoh/blob/main/doc/schema.zh-CN.md)
+- [贡献和维护流程](CONTRIBUTING.zh-CN.md)
+
+## 许可证
+
+MIT
