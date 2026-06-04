@@ -27,32 +27,30 @@
 ```yaml
 schema: 1
 kind: source
-name: FlutterOH official source
+name: flutteroh
 description: Official FlutterOH SDK releases and package implementation metadata.
 
 repository:
   git:
     url: https://github.com/FlutterOH/source.git
 
-environment:
-  fluoh: '>=0.1.0'
-
 sdk:
   git:
     url: https://gitcode.com/CPF-Flutter/flutter_flutter.git
   versions:
-    - 3.35.8-ohos-1.0.1
+    - 3.35.8-ohos-0.0.2
     - 3.35.8-ohos-0.0.3
+    - 3.35.8-ohos-1.0.1
 ```
 
 规则：
 
 - `schema` 为 `1`，`kind` 为 `source`。
-- `repository.git.url` 是公开的官方源仓库地址。
-- `environment.fluoh` 记录预期的 `fluoh` CLI 约束。
+- `name` 是 Source token。官方 Source 使用 `flutteroh`。
+- `repository.git.url` 是可选的 Source 自描述信息。
 - `sdk.git.url` 是 FlutterOH SDK 仓库。
-- `sdk.versions` 保存完整、可安装的 SDK tag。
-- 未包含包 manifest 时不写 `manifests`。写入时，每个 manifest entry 都映射到
+- `sdk.versions` 按语义化版本升序保存完整、可安装的 SDK tag。
+- 未包含包 manifest 时不写 `manifests`。写入时，每个 manifest route 条目都映射到
   `manifests/<name>/fluoh.yaml`。
 
 仓库内容应限制在当前 source layout、文档、workflow 文件和 GitHub 模板内。
@@ -66,8 +64,7 @@ sdk:
 - 版本是完整 SDK tag，例如 `3.35.8-ohos-1.0.1`。
 - 文档和 issue/PR 模板不需要流程变更，或已在同一个 PR 中同步更新。
 
-版本列表应保持稳定、可重复。如果后续同一 SDK line 包含多个 patch，优先把较新版本
-放在前面。
+版本列表应保持稳定、可重复，并按语义化版本升序排列；新增 SDK 版本追加在旧版本之后。
 
 ## Package Manifest 更新
 
@@ -77,8 +74,8 @@ Package manifest 是从包仓库 release 结果生成或整理出来的源数据
 外部适配包只有先完成自己的包仓库发布流程后，才适合加入 `FlutterOH/source`：
 
 - 包仓库已经有包仓库自己的 `fluoh.yaml`。
-- 包仓库记录了 FlutterOH 仓库 URL、上游 URL 和分支、package path、SDK version、
-  已适配的 upstream version 和 release version。
+- 包 release tag 记录了 FlutterOH 仓库 URL、上游 URL、package name 和 path、SDK line、
+  已适配的 upstream version、release version 和 upstream commit。
 - 发布前已经通过 `fluoh package status` 查看发布就绪状态，并通过
   `fluoh package check`。
 - 至少已经通过 `fluoh package release` 发布一个 release tag。
@@ -94,13 +91,12 @@ manifests/
     fluoh.yaml
 ```
 
-Manifest 文件使用 `kind: manifest`，并且 manifest `name` 必须匹配根 manifest
-entry：
+Manifest 文件使用 `kind: manifest`。根 `fluoh.yaml` 中的 route name 必须匹配
+manifest 里的 `package.name`：
 
 ```yaml
 schema: 1
 kind: manifest
-name: camera
 
 repository:
   git:
@@ -109,19 +105,18 @@ repository:
 upstream:
   git:
     url: https://github.com/flutter/packages.git
-    branch: main
 
-packages:
-  camera:
-    repository:
-      path: packages/camera/camera
-    upstream:
-      path: packages/camera/camera
-    sdks:
-      "3.35":
-        releases:
-          - version: "0.1.0"
-            upstreamVersion: "0.11.0"
+package:
+  name: camera
+  path: packages/camera/camera
+  sdks:
+    "3.35":
+      releases:
+        - version: 0.1.0
+          upstream:
+            version: 0.11.0
+            ref: camera-v0.11.0
+            commit: "0123456789abcdef0123456789abcdef01234567"
 ```
 
 规则：
@@ -129,6 +124,11 @@ packages:
 - 只有对应 manifest 文件存在并通过校验时，才在根 `fluoh.yaml` 加入
   `manifests` entry。
 - 同一个 package name 只能出现在一个官方 manifest 中。
+- 每个 Source Manifest 只通过 `package` 描述一个 package。
+- `package.path` 同时表示 FlutterOH 包仓库和上游仓库中的路径，默认是 `.`。
+- Release records 按 `package.sdks.<sdk-line>.releases` 分组。
+- Release record 必须包含 `version`、`upstream.version` 和 `upstream.commit`；
+  `upstream.ref` 可选。
 - 正常发布记录不需要写 release `status`。只有不应默认推荐的已发布记录才写
   `experimental` 或 `broken`。
 - 使用 `maintenance` 和 `advisory` 表达包级维护说明；不要发明 `fluoh` schema
@@ -139,13 +139,13 @@ packages:
 刷新 release records。Manifest metadata、advisory 文案和 frozen maintenance 说明可直接
 编辑 manifest 文件。
 `fluoh source sync` 不会自动发现新的官方 manifest；首次接入一个包时，PR 必须同时加入
-根 manifest entry 和对应的 `manifests/<manifest-name>/fluoh.yaml`。
+根 manifest route 条目和对应的 `manifests/<manifest-name>/fluoh.yaml`。
 
 首次接入适配包时，通过本仓库 PR 完成：
 
 1. Fork 或 clone `FlutterOH/source`。
-2. 选择稳定的 manifest name，通常使用包名或包组名。
-3. 在根 `fluoh.yaml` 添加 manifest entry：
+2. 选择稳定的 manifest route name，通常使用包名或包组名。
+3. 在根 `fluoh.yaml` 添加 manifest route 条目：
 
    ```yaml
    manifests:
@@ -153,9 +153,9 @@ packages:
    ```
 
 4. 创建 `manifests/<manifest-name>/fluoh.yaml`，写入 package repository、upstream、
-   package path、SDK line 和已发布 package release tag 对应的 records。
+   package name 和 path、SDK line，以及已发布 package release tag 对应的 records。
 5. 运行 `fluoh source check .` 和 `git diff --check`。
-6. 提交 PR，说明 manifest name、适配仓库、已发布 release tag 和 source check 结果。
+6. 提交 PR，说明 manifest route name、适配仓库、已发布 release tag 和 source check 结果。
    上游路径、SDK line 和 release records 应能从 manifest diff 和已发布 package
    release tag 中复核。
 
@@ -178,7 +178,7 @@ pull request CI 执行。
 首次 manifest PR 合并后，包维护者不需要每发布一个包版本都向 `FlutterOH/source` 提 PR。
 新包版本应在包仓库通过 `fluoh package status` 和 `fluoh package check` 后，再用
 `fluoh package release` 发布；定时 sync workflow 可以导入这些 tags。只有 release tag
-无法表达的 metadata 变化才需要再次提交 source-data PR，例如 manifest name 调整、
+无法表达的 metadata 变化才需要再次提交 source-data PR，例如 manifest route name 调整、
 repository 或 package path 修正、advisory 文案、maintenance 状态或流程变化。
 
 ## 本地维护环境
@@ -198,7 +198,7 @@ fluoh --version
 日常本地校验：
 
 ```sh
-fluoh source check .
+fluoh source check . --schema-only
 ```
 
 只有需要让 consumer commands 使用当前 checkout 时，才添加本地源。本地源是快照；
@@ -213,6 +213,7 @@ fluoh sdk list
 
 ```sh
 fluoh source check .
+git status --short --ignored=matching
 git diff --check
 ```
 

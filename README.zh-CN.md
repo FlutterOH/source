@@ -8,7 +8,6 @@
   <a href="https://github.com/FlutterOH/source/actions/workflows/validate.yml"><img src="https://github.com/FlutterOH/source/actions/workflows/validate.yml/badge.svg" alt="validate source"></a>
   <a href="https://github.com/FlutterOH/source/actions/workflows/sync.yml"><img src="https://github.com/FlutterOH/source/actions/workflows/sync.yml/badge.svg" alt="sync source"></a>
   <img src="https://img.shields.io/badge/source%20schema-1-blue" alt="source schema 1">
-  <img src="https://img.shields.io/badge/fluoh-%3E%3D0.1.0-6f42c1" alt="fluoh >=0.1.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
 </p>
 
@@ -56,7 +55,7 @@ fluohf build hap
 | 数据 | 当前状态 | 使用方 |
 | --- | --- | --- |
 | SDK 仓库 | `https://gitcode.com/CPF-Flutter/flutter_flutter.git` | `fluoh sdk` 命令 |
-| SDK 版本 | `3.35.8-ohos-1.0.1`、`3.35.8-ohos-0.0.3` | `fluoh sdk list` 和 `fluoh sdk use` |
+| SDK 版本 | `3.35.8-ohos-0.0.2`、`3.35.8-ohos-0.0.3`、`3.35.8-ohos-1.0.1` | `fluoh sdk list` 和 `fluoh sdk use` |
 | Package manifests | 暂无 | 后续官方 package implementation lookup |
 
 本仓库刻意保持 source-data focused。这里不保存 SDK 二进制、包适配代码、包 release
@@ -86,7 +85,7 @@ fluoh --version
 修改 source 文件后校验当前 checkout：
 
 ```sh
-fluoh source check .
+fluoh source check . --schema-only
 ```
 
 只有需要让 consumer commands 使用当前 checkout 时，才添加本地 source。本地 source
@@ -108,6 +107,7 @@ git diff --check
 提交 PR 前还需要运行：
 
 ```sh
+fluoh source check .
 git status --short --ignored=matching
 git diff --check
 ```

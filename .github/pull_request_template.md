@@ -22,7 +22,7 @@ Use one of:
 
 ## Intake Info (if applicable)
 
-- Manifest name:
+- Manifest route name:
 - Package repository:
 - Published release tag:
 
@@ -42,7 +42,7 @@ Use one of:
 - [ ] Package release-record changes reference published FlutterOH package release tags, not in-progress package repository state.
 - [ ] Referenced package release tags were created by `fluoh package release` and contain package-owned `fluoh.yaml` metadata.
 - [ ] Existing manifest release-record refreshes were generated with `fluoh source sync .` when applicable.
-- [ ] First-time package manifests add both the root `fluoh.yaml` manifest entry and `manifests/<manifest-name>/fluoh.yaml`.
+- [ ] First-time package manifests add both the root `fluoh.yaml` manifest route entry and `manifests/<manifest-name>/fluoh.yaml`.
 - [ ] First-time package manifests provide enough intake info for reviewers or automation to fetch and verify the published package release tag.
 - [ ] Unfinished adaptations are not being added to the official source.
 
@@ -74,7 +74,7 @@ Release-record verification runs from the committed PR diff in CI with
 For first-time package manifest PRs, provide the package release locator:
 
 ```text
-manifest name: <manifest-name>
+manifest route name: <manifest-name>
 package repository: <url>
 published release tag: <tag>
 ```

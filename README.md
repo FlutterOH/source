@@ -8,7 +8,6 @@
   <a href="https://github.com/FlutterOH/source/actions/workflows/validate.yml"><img src="https://github.com/FlutterOH/source/actions/workflows/validate.yml/badge.svg" alt="validate source"></a>
   <a href="https://github.com/FlutterOH/source/actions/workflows/sync.yml"><img src="https://github.com/FlutterOH/source/actions/workflows/sync.yml/badge.svg" alt="sync source"></a>
   <img src="https://img.shields.io/badge/source%20schema-1-blue" alt="source schema 1">
-  <img src="https://img.shields.io/badge/fluoh-%3E%3D0.1.0-6f42c1" alt="fluoh >=0.1.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
 </p>
 
@@ -57,7 +56,7 @@ The source contract starts at [`fluoh.yaml`](fluoh.yaml).
 | Data | Current status | Used by |
 | --- | --- | --- |
 | SDK repository | `https://gitcode.com/CPF-Flutter/flutter_flutter.git` | `fluoh sdk` commands |
-| SDK versions | `3.35.8-ohos-1.0.1`, `3.35.8-ohos-0.0.3` | `fluoh sdk list` and `fluoh sdk use` |
+| SDK versions | `3.35.8-ohos-0.0.2`, `3.35.8-ohos-0.0.3`, `3.35.8-ohos-1.0.1` | `fluoh sdk list` and `fluoh sdk use` |
 | Package manifests | None yet | Future official package implementation lookup |
 
 This repository is deliberately source-data focused. It does not contain SDK
@@ -91,7 +90,7 @@ fluoh --version
 Validate this checkout after changing source files:
 
 ```sh
-fluoh source check .
+fluoh source check . --schema-only
 ```
 
 Only add a local source when consumer commands should use this checkout. Local
@@ -114,6 +113,7 @@ git diff --check
 Before opening a pull request, also run:
 
 ```sh
+fluoh source check .
 git status --short --ignored=matching
 git diff --check
 ```

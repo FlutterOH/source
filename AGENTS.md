@@ -10,7 +10,7 @@ Maintain and validate this repository with a released `fluoh` or the sibling `..
 ## Layout
 
 - `fluoh.yaml`: source root manifest, official SDK repository, and configured SDK versions.
-- `manifests/`: future package implementation manifests, one manifest name per subdirectory.
+- `manifests/`: future package implementation manifests, one manifest route per subdirectory.
 - `.github/workflows/`: source validation and scheduled sync automation.
 - `.github/ISSUE_TEMPLATE/`: maintainer triage templates.
 - `.github/pull_request_template.md`: source-data PR checklist.
@@ -31,6 +31,13 @@ Maintain and validate this repository with a released `fluoh` or the sibling `..
 ## Verification
 
 Use a released or locally built `fluoh`:
+
+```sh
+fluoh source check . --schema-only
+```
+
+Run the full Source check before opening a pull request or when release records
+must be verified:
 
 ```sh
 fluoh source check .
