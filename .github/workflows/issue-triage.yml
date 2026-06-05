@@ -1,0 +1,272 @@
+name: triage source issues
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+
+permissions:
+  issues: write
+
+concurrency:
+  group: triage-source-issue-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Classify source issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- flutteroh-source-issue-triage -->';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+            const issue = context.payload.issue;
+            const title = issue.title || '';
+            const body = issue.body || '';
+            const existingLabels = issue.labels.map((label) =>
+              typeof label === 'string' ? label : label.name);
+
+            const labelDefinitions = {
+              'area:sdk': {
+                color: '8957E5',
+                description: 'SDK release source metadata.',
+              },
+              'area:manifest': {
+                color: '0969DA',
+                description: 'Package manifest source metadata.',
+              },
+              'area:release-records': {
+                color: 'BF8700',
+                description: 'Package release records.',
+              },
+              'area:source': {
+                color: '1F883D',
+                description: 'Source root or general source data.',
+              },
+              'area:docs': {
+                color: '6E7781',
+                description: 'README or contributing documentation.',
+              },
+              'area:ci': {
+                color: 'CF222E',
+                description: 'GitHub Actions workflow.',
+              },
+              'area:template': {
+                color: '8250DF',
+                description: 'Issue or pull request template.',
+              },
+              'needs-info': {
+                color: 'FBCA04',
+                description: 'Issue is missing required source maintenance details.',
+              },
+            };
+
+            for (const [name, data] of Object.entries(labelDefinitions)) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+                try {
+                  await github.rest.issues.createLabel({
+                    owner,
+                    repo,
+                    name,
+                    color: data.color,
+                    description: data.description,
+                  });
+                } catch (createError) {
+                  if (createError.status !== 422) {
+                    throw createError;
+                  }
+                }
+              }
+            }
+
+            const sectionValue = (heading) => {
+              const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const match = body.match(new RegExp(`### ${escaped}[ \\t]*\\r?\\n(?:[ \\t]*\\r?\\n)*([\\s\\S]*?)(?=\\r?\\n### |$)`, 'i'));
+              return (match?.[1] || '').trim();
+            };
+            const hasValue = (value) =>
+              value &&
+              value !== '-' &&
+              value !== '_No response_' &&
+              !/^none$/i.test(value) &&
+              !/^unknown$/i.test(value) &&
+              !/^n\/a$/i.test(value);
+            const hasLabel = (name) => existingLabels.includes(name);
+            const text = `${title}\n${body}`.toLowerCase();
+            const areaLabels = new Set();
+            const missingInfo = [];
+
+            const sdkIssue =
+              hasLabel('sdk') ||
+              /^\[sdk\]/i.test(title) ||
+              hasValue(sectionValue('SDK version tag'));
+            const packageIssue =
+              hasLabel('packages') ||
+              /^\[package intake\]/i.test(title) ||
+              hasValue(sectionValue('Manifest route name')) ||
+              hasValue(sectionValue('Published release tag'));
+            const sourceIssue =
+              hasLabel('source') ||
+              /^\[source\]/i.test(title) ||
+              hasValue(sectionValue('Area'));
+
+            if (sdkIssue) {
+              areaLabels.add('area:sdk');
+              for (const heading of ['SDK version tag', 'SDK repository', 'Tag proof', 'User impact']) {
+                if (!hasValue(sectionValue(heading))) {
+                  missingInfo.push(heading);
+                }
+              }
+            }
+
+            if (packageIssue) {
+              areaLabels.add('area:manifest');
+              for (const heading of [
+                'Manifest route name',
+                'Package name',
+                'FlutterOH package repository',
+                'Published release tag',
+              ]) {
+                if (!hasValue(sectionValue(heading))) {
+                  missingInfo.push(heading);
+                }
+              }
+            }
+
+            if (sourceIssue) {
+              const area = sectionValue('Area').toLowerCase();
+              if (area.includes('root fluoh.yaml')) {
+                areaLabels.add('area:source');
+              }
+              if (area.includes('sdk releases')) {
+                areaLabels.add('area:sdk');
+              }
+              if (area.includes('package manifests')) {
+                areaLabels.add('area:manifest');
+              }
+              if (area.includes('readme') || area.includes('contributing')) {
+                areaLabels.add('area:docs');
+              }
+              if (area.includes('issue') || area.includes('pull request templates')) {
+                areaLabels.add('area:template');
+              }
+              if (area.includes('github actions')) {
+                areaLabels.add('area:ci');
+              }
+              for (const heading of ['Current state', 'Expected state']) {
+                if (!hasValue(sectionValue(heading))) {
+                  missingInfo.push(heading);
+                }
+              }
+            }
+
+            if (text.includes('release record') || text.includes('source sync')) {
+              areaLabels.add('area:release-records');
+            }
+            if (text.includes('fluoh.yaml') && areaLabels.size === 0) {
+              areaLabels.add('area:source');
+            }
+            if (text.includes('.github/workflows')) {
+              areaLabels.add('area:ci');
+            }
+            if (text.includes('.github/issue_template') || text.includes('pull_request_template')) {
+              areaLabels.add('area:template');
+            }
+            if (text.includes('readme') || text.includes('contributing')) {
+              areaLabels.add('area:docs');
+            }
+            if (areaLabels.size === 0) {
+              areaLabels.add('area:source');
+            }
+
+            const missingItems = [...new Set(missingInfo)];
+            const detectedAreaLabels = [...areaLabels];
+            const labelNamesToApply = [
+              ...detectedAreaLabels,
+              ...(missingItems.length > 0 ? ['needs-info'] : []),
+            ];
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number, per_page: 100 },
+            );
+            const previous = comments.slice().reverse().find((comment) =>
+              comment.user?.type === 'Bot' && (comment.body || '').includes(marker));
+            const previousDetectedAreaLabels = previous
+              ? [...(previous.body || '').matchAll(/^- `(area:[^`]+)`$/gm)]
+                .map((match) => match[1])
+              : [];
+            const staleBotAreaLabels = previousDetectedAreaLabels.filter((label) =>
+              !detectedAreaLabels.includes(label));
+
+            for (const label of ['needs-info', ...staleBotAreaLabels]) {
+              if (!labelNamesToApply.includes(label) && existingLabels.includes(label)) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number,
+                    name: label,
+                  });
+                } catch (error) {
+                  if (error.status !== 404) {
+                    throw error;
+                  }
+                }
+              }
+            }
+
+            const labelsToAdd = labelNamesToApply.filter((label) =>
+              !existingLabels.includes(label));
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels: labelsToAdd,
+              });
+            }
+
+            const commentLines = [
+              marker,
+              '## Source issue triage',
+              '',
+              'Detected areas:',
+              ...detectedAreaLabels.map((label) => `- \`${label}\``),
+              '',
+            ];
+            if (missingItems.length > 0) {
+              commentLines.push(
+                'This issue is missing required source-maintenance details:',
+                ...missingItems.map((item) => `- ${item}`),
+              );
+            } else {
+              commentLines.push('Required source-maintenance details are present.');
+            }
+            const commentBody = commentLines.join('\n');
+
+            if (previous) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: previous.id,
+                body: commentBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: commentBody,
+              });
+            }

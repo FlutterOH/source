@@ -57,22 +57,22 @@ jobs:
 
           case "${{ github.event_name }}" in
             pull_request)
-              command_text="fluoh source check --base-ref origin/${{ github.base_ref }} ."
-              check_command=(fluoh source check --base-ref "origin/${{ github.base_ref }}" .)
+              command_text="fluoh source check --base-ref origin/${{ github.base_ref }} . --json"
+              check_command=(fluoh source check --base-ref "origin/${{ github.base_ref }}" . --json)
               ;;
             push)
               before_ref="${{ github.event.before }}"
               if [ -n "$before_ref" ] && [ "$before_ref" != "0000000000000000000000000000000000000000" ]; then
-                command_text="fluoh source check --base-ref $before_ref --skip-release-checks ."
-                check_command=(fluoh source check --base-ref "$before_ref" --skip-release-checks .)
+                command_text="fluoh source check --base-ref $before_ref --skip-release-checks . --json"
+                check_command=(fluoh source check --base-ref "$before_ref" --skip-release-checks . --json)
               else
-                command_text="fluoh source check --skip-release-checks ."
-                check_command=(fluoh source check --skip-release-checks .)
+                command_text="fluoh source check --skip-release-checks . --json"
+                check_command=(fluoh source check --skip-release-checks . --json)
               fi
               ;;
             *)
-              command_text="fluoh source check --skip-release-checks ."
-              check_command=(fluoh source check --skip-release-checks .)
+              command_text="fluoh source check --skip-release-checks . --json"
+              check_command=(fluoh source check --skip-release-checks . --json)
               ;;
           esac
 
@@ -94,6 +94,79 @@ jobs:
             echo "- Event: \`${{ github.event_name }}\`"
             echo "- Command: \`$command_text\`"
             echo "- Result: $result"
+            ruby -rjson -e '
+              def balanced_json_objects(text)
+                objects = []
+                text.each_char.with_index do |char, start_index|
+                  next unless char == "{"
+
+                  depth = 0
+                  in_string = false
+                  escaped = false
+                  text[start_index, text.length - start_index].each_char.with_index do |current, offset|
+                    if in_string
+                      if escaped
+                        escaped = false
+                      elsif current == "\\"
+                        escaped = true
+                      elsif current == "\""
+                        in_string = false
+                      end
+                      next
+                    end
+
+                    case current
+                    when "\""
+                      in_string = true
+                    when "{"
+                      depth += 1
+                    when "}"
+                      depth -= 1
+                      if depth.zero?
+                        candidate = text[start_index, offset + 1]
+                        begin
+                          objects << JSON.parse(candidate)
+                        rescue JSON::ParserError
+                        end
+                        break
+                      end
+                    end
+                  end
+                end
+                objects
+              end
+
+              def source_check_score(object)
+                return 0 unless object.is_a?(Hash)
+
+                [
+                  "recommendation",
+                  "changedFiles",
+                  "checkedManifests",
+                  "warnings",
+                  "errors",
+                  "releaseChecks",
+                ].count { |key| object.key?(key) }
+              end
+
+              text = File.read(ARGV.fetch(0))
+              data = balanced_json_objects(text)
+                .map { |object| [source_check_score(object), object] }
+                .select { |score, _object| score.positive? }
+                .max_by { |score, _object| score }
+                &.last
+
+              if data
+                puts "- Recommendation: `#{data.fetch("recommendation", data.fetch("status", "unknown"))}`"
+                puts "- Changed files: #{Array(data["changedFiles"]).length}"
+                puts "- Checked manifests: #{Array(data["checkedManifests"]).length}"
+                puts "- Warnings: #{Array(data["warnings"]).length}"
+                puts "- Errors: #{Array(data["errors"]).length}"
+                puts "- Release checks: #{Array(data["releaseChecks"]).length}"
+              else
+                puts "- JSON summary: unavailable"
+              end
+            ' "$log_file" || echo "- JSON summary: unavailable"
             echo
             echo "<details><summary>fluoh source check output</summary>"
             echo

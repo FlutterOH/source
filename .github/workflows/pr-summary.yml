@@ -4,6 +4,7 @@ on:
   pull_request_target:
     types:
       - opened
+      - edited
       - reopened
       - synchronize
       - ready_for_review
@@ -60,32 +61,54 @@ jobs:
                 description: 'High-risk source-data or automation change.',
               },
             };
-            const typeLabelDefinitions = {
-              'type:sdk': {
+            const areaLabelDefinitions = {
+              'area:sdk': {
                 color: '8957E5',
                 description: 'SDK version metadata change.',
               },
-              'type:manifest': {
+              'area:manifest': {
                 color: '0969DA',
                 description: 'Package manifest route or metadata change.',
               },
-              'type:release-records': {
+              'area:release-records': {
                 color: 'BF8700',
                 description: 'Package release record change.',
               },
-              'type:docs': {
-                color: '6E7781',
-                description: 'Documentation or GitHub template change.',
+              'area:source': {
+                color: '1F883D',
+                description: 'Source root or source YAML metadata change.',
               },
-              'type:workflow': {
+              'area:docs': {
+                color: '6E7781',
+                description: 'Documentation change.',
+              },
+              'area:ci': {
                 color: 'CF222E',
                 description: 'GitHub Actions workflow change.',
+              },
+              'area:template': {
+                color: '8250DF',
+                description: 'Issue or pull request template change.',
+              },
+            };
+            const statusLabelDefinitions = {
+              'needs-validation': {
+                color: 'FBCA04',
+                description: 'PR template validation evidence is missing.',
               },
             };
             const labelDefinitions = {
               ...riskLabelDefinitions,
-              ...typeLabelDefinitions,
+              ...areaLabelDefinitions,
+              ...statusLabelDefinitions,
             };
+            const deprecatedLabelNames = [
+              'type:sdk',
+              'type:manifest',
+              'type:release-records',
+              'type:docs',
+              'type:workflow',
+            ];
 
             const changedFiles = await github.paginate(
               github.rest.pulls.listFiles,
@@ -110,6 +133,9 @@ jobs:
               path === sourceRootPath || manifestPattern.test(path);
             const isManifestPath = (path) => manifestPattern.test(path);
             const isWorkflowPath = (path) => workflowPattern.test(path);
+            const isTemplatePath = (path) =>
+              /^\.github\/ISSUE_TEMPLATE\//.test(path) ||
+              path === '.github/pull_request_template.md';
             const isMaintainerOnlyPath = (path) =>
               path === '.gitignore' ||
               path === 'LICENSE' ||
@@ -117,16 +143,13 @@ jobs:
               path === 'CLAUDE.md' ||
               /^README(\.zh-CN)?\.md$/.test(path) ||
               /^CONTRIBUTING(\.zh-CN)?\.md$/.test(path) ||
-              /^\.github\/ISSUE_TEMPLATE\//.test(path) ||
-              path === '.github/pull_request_template.md';
+              isTemplatePath(path);
             const isDocumentationPath = (path) =>
               path === 'LICENSE' ||
               path === 'AGENTS.md' ||
               path === 'CLAUDE.md' ||
               /^README(\.zh-CN)?\.md$/.test(path) ||
-              /^CONTRIBUTING(\.zh-CN)?\.md$/.test(path) ||
-              /^\.github\/ISSUE_TEMPLATE\//.test(path) ||
-              path === '.github/pull_request_template.md';
+              /^CONTRIBUTING(\.zh-CN)?\.md$/.test(path);
 
             const isSourceYaml = (file) =>
               pathWas(file, isSourceYamlPath) || pathNow(file, isSourceYamlPath);
@@ -168,6 +191,21 @@ jobs:
                 .replace(/\s+#.*$/, '')
                 .trim();
               return scalar.replace(/^(['"])(.*)\1$/, '$2');
+            };
+            const hasFilledValidationResult = (body) => {
+              const match = (body || '').match(/Validation result:\s*([\s\S]*?)(?:\n## |\n# |$)/i);
+              if (!match) {
+                return false;
+              }
+
+              return match[1]
+                .split('\n')
+                .map((line) => line.trim())
+                .some((line) =>
+                  line !== '' &&
+                  line !== '-' &&
+                  line !== '- [ ]' &&
+                  !/^```/.test(line));
             };
             const readPullRequestFile = async (repoInfo, ref, path) => {
               if (!repoInfo?.owner?.login || !repoInfo.name || !ref) {
@@ -330,6 +368,8 @@ jobs:
               pathWas(file, isWorkflowPath) || pathNow(file, isWorkflowPath));
             const documentationFiles = changedFiles.filter((file) =>
               filePaths(file).some(isDocumentationPath));
+            const templateFiles = changedFiles.filter((file) =>
+              filePaths(file).some(isTemplatePath));
             const sourceRootChanged = changedFiles.some((file) =>
               pathWas(file, (path) => path === sourceRootPath) ||
               pathNow(file, (path) => path === sourceRootPath));
@@ -548,9 +588,12 @@ jobs:
               risk = 'risk:medium';
             }
 
-            const typeLabels = [];
+            const areaLabels = [];
+            if (sourceYamlFiles.length > 0) {
+              areaLabels.push('area:source');
+            }
             if (sdkVersionChanges.changed) {
-              typeLabels.push('type:sdk');
+              areaLabels.push('area:sdk');
             }
             if (
               manifestAddedRoutes.length > 0 ||
@@ -558,18 +601,26 @@ jobs:
               manifestRenamedRoutes.length > 0 ||
               manifestModifiedRoutes.length > 0
             ) {
-              typeLabels.push('type:manifest');
+              areaLabels.push('area:manifest');
             }
             if (releaseRecordTouches) {
-              typeLabels.push('type:release-records');
+              areaLabels.push('area:release-records');
             }
             if (documentationFiles.length > 0) {
-              typeLabels.push('type:docs');
+              areaLabels.push('area:docs');
             }
             if (workflowFiles.length > 0) {
-              typeLabels.push('type:workflow');
+              areaLabels.push('area:ci');
             }
-            const labelsToApply = [risk, ...typeLabels];
+            if (templateFiles.length > 0) {
+              areaLabels.push('area:template');
+            }
+            const validationEvidenceMissing = !hasFilledValidationResult(pullRequest.body || '');
+            const labelsToApply = [
+              risk,
+              ...areaLabels,
+              ...(validationEvidenceMissing ? ['needs-validation'] : []),
+            ];
 
             for (const [name, data] of Object.entries(labelDefinitions)) {
               try {
@@ -602,7 +653,11 @@ jobs:
             const existingLabels = currentIssue.data.labels.map((label) =>
               typeof label === 'string' ? label : label.name);
             const labelNamesToApply = [...new Set(labelsToApply)];
-            for (const label of Object.keys(labelDefinitions)) {
+            const managedLabelNames = [
+              ...Object.keys(labelDefinitions),
+              ...deprecatedLabelNames,
+            ];
+            for (const label of managedLabelNames) {
               if (!labelNamesToApply.includes(label) && existingLabels.includes(label)) {
                 try {
                   await github.rest.issues.removeLabel({
@@ -662,9 +717,12 @@ jobs:
             const routeText = manifestRoutes.length > 0
               ? manifestRoutes.map(codeSpan).join(', ')
               : 'none';
-            const typeLabelText = typeLabels.length > 0
-              ? typeLabels.map(codeSpan).join(', ')
+            const areaLabelText = areaLabels.length > 0
+              ? [...new Set(areaLabels)].map(codeSpan).join(', ')
               : 'none';
+            const validationEvidenceText = validationEvidenceMissing
+              ? 'missing from PR template'
+              : 'present in PR template';
             const sdkVersionText = sourceRootChanged
               ? [
                 '**Added SDK versions**',
@@ -679,6 +737,47 @@ jobs:
                   : 'SDK version details are patch-based because file contents could not be compared directly.',
               ].filter(Boolean).join('\n')
               : '- none';
+            const sdkReleaseImpact = [];
+            if (sdkVersionChanges.added.length > 0) {
+              sdkReleaseImpact.push('Added SDK versions become visible through `fluoh sdk list` after merge.');
+            }
+            if (sdkVersionChanges.removed.length > 0) {
+              sdkReleaseImpact.push('Removed SDK versions stop being listed for consumers.');
+            }
+            if (sdkVersionChanges.reordered) {
+              sdkReleaseImpact.push('SDK version order changed; confirm display and selection expectations remain intentional.');
+            }
+            const routeSourceImpact = [];
+            if (manifestAddedRoutes.length > 0) {
+              routeSourceImpact.push('Added routes create new official package source entries.');
+            }
+            if (manifestRemovedRoutes.length > 0) {
+              routeSourceImpact.push('Removed routes make package source entries unavailable.');
+            }
+            if (manifestRenamedRoutes.length > 0) {
+              routeSourceImpact.push('Renamed routes change how maintainers and consumers identify official package entries.');
+            }
+            if (manifestModifiedRoutes.length > 0) {
+              routeSourceImpact.push('Modified routes may change package repository, upstream, path, or release metadata.');
+            }
+            if (releaseRecordTouches) {
+              routeSourceImpact.push('Release-record changes should correspond to published `fluoh package release` tags.');
+            }
+            const releaseImpactText = [
+              ...sdkReleaseImpact,
+              ...(workflowFiles.length > 0 ? ['Workflow changes may affect source validation or scheduled sync automation.'] : []),
+            ];
+            const sourceImpactText = routeSourceImpact;
+            const expectedValidationEvidence = ['PR author provided `git diff --check` evidence.'];
+            if (sourceYamlFiles.length > 0) {
+              expectedValidationEvidence.push('PR author provided `fluoh source check .` evidence.');
+            }
+            if (releaseRecordTouches) {
+              expectedValidationEvidence.push('Release-record refresh PRs include `fluoh source sync .` and `fluoh source check --skip-release-checks .` evidence when applicable.');
+            }
+            if (workflowFiles.length > 0) {
+              expectedValidationEvidence.push('Maintainer reviewed workflow triggers and permissions.');
+            }
             const manifestRouteText = [
               '**Added routes**',
               formatCodeList(manifestAddedRoutes),
@@ -729,6 +828,9 @@ jobs:
             if (workflowFiles.length > 0) {
               checklist.push('Review workflow permission and trigger changes before merging.');
             }
+            if (validationEvidenceMissing) {
+              checklist.push('Ask the author to fill the PR template `Validation result` field.');
+            }
             if (checklist.length === 0) {
               checklist.push('Review the PR normally and confirm CI passes.');
             }
@@ -754,9 +856,10 @@ jobs:
             ## Source PR summary
 
             **Risk label:** \`${risk}\`
-            **Change type labels:** ${typeLabelText}
+            **Changed areas:** ${areaLabelText}
             **Changed files:** ${changedFiles.length}
             **Changed manifest routes:** ${routeText}
+            **Validation evidence:** ${validationEvidenceText}
 
             **Risk reasons**
             ${formatList(reasons)}
@@ -766,6 +869,15 @@ jobs:
 
             **Manifest routes**
             ${manifestRouteText}
+
+            **Release impact**
+            ${formatList(releaseImpactText)}
+
+            **Source impact**
+            ${formatList(sourceImpactText)}
+
+            **Expected validation evidence**
+            ${formatList(expectedValidationEvidence)}
 
             **Maintainer checklist**
             ${checklistText}
