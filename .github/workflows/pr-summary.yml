@@ -1,0 +1,791 @@
+name: summarize source PR
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to refresh.
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: summarize-source-pr-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize changed source data
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- flutteroh-source-pr-summary -->';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const requestedPullNumber = context.payload.pull_request?.number ||
+              Number(core.getInput('pr_number'));
+            if (!Number.isInteger(requestedPullNumber) || requestedPullNumber <= 0) {
+              throw new Error('A valid pull request number is required.');
+            }
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: requestedPullNumber,
+            });
+            const pull_number = pullRequest.number;
+
+            const riskLabelDefinitions = {
+              'risk:low': {
+                color: '2DA44E',
+                description: 'Low source-data review risk.',
+              },
+              'risk:medium': {
+                color: 'D29922',
+                description: 'Normal source-data review required.',
+              },
+              'risk:high': {
+                color: 'CF222E',
+                description: 'High-risk source-data or automation change.',
+              },
+            };
+            const typeLabelDefinitions = {
+              'type:sdk': {
+                color: '8957E5',
+                description: 'SDK version metadata change.',
+              },
+              'type:manifest': {
+                color: '0969DA',
+                description: 'Package manifest route or metadata change.',
+              },
+              'type:release-records': {
+                color: 'BF8700',
+                description: 'Package release record change.',
+              },
+              'type:docs': {
+                color: '6E7781',
+                description: 'Documentation or GitHub template change.',
+              },
+              'type:workflow': {
+                color: 'CF222E',
+                description: 'GitHub Actions workflow change.',
+              },
+            };
+            const labelDefinitions = {
+              ...riskLabelDefinitions,
+              ...typeLabelDefinitions,
+            };
+
+            const changedFiles = await github.paginate(
+              github.rest.pulls.listFiles,
+              { owner, repo, pull_number, per_page: 100 },
+            );
+
+            const sourceRootPath = 'fluoh.yaml';
+            const manifestPattern = /^manifests\/[^/]+\/fluoh\.yaml$/;
+            const workflowPattern = /^\.github\/workflows\/.+\.ya?ml$/;
+
+            const filePaths = (file) =>
+              [file.previous_filename, file.filename].filter(Boolean);
+            const pathWas = (file, predicate) =>
+              file.status !== 'added' &&
+              predicate(file.previous_filename || file.filename);
+            const pathNow = (file, predicate) =>
+              file.status !== 'removed' && predicate(file.filename);
+            const routeFromManifestPath = (path) =>
+              path.match(/^manifests\/([^/]+)\/fluoh\.yaml$/)?.[1] || null;
+
+            const isSourceYamlPath = (path) =>
+              path === sourceRootPath || manifestPattern.test(path);
+            const isManifestPath = (path) => manifestPattern.test(path);
+            const isWorkflowPath = (path) => workflowPattern.test(path);
+            const isMaintainerOnlyPath = (path) =>
+              path === '.gitignore' ||
+              path === 'LICENSE' ||
+              path === 'AGENTS.md' ||
+              path === 'CLAUDE.md' ||
+              /^README(\.zh-CN)?\.md$/.test(path) ||
+              /^CONTRIBUTING(\.zh-CN)?\.md$/.test(path) ||
+              /^\.github\/ISSUE_TEMPLATE\//.test(path) ||
+              path === '.github/pull_request_template.md';
+            const isDocumentationPath = (path) =>
+              path === 'LICENSE' ||
+              path === 'AGENTS.md' ||
+              path === 'CLAUDE.md' ||
+              /^README(\.zh-CN)?\.md$/.test(path) ||
+              /^CONTRIBUTING(\.zh-CN)?\.md$/.test(path) ||
+              /^\.github\/ISSUE_TEMPLATE\//.test(path) ||
+              path === '.github/pull_request_template.md';
+
+            const isSourceYaml = (file) =>
+              pathWas(file, isSourceYamlPath) || pathNow(file, isSourceYamlPath);
+            const isMaintainerOnly = (file) =>
+              filePaths(file).every(isMaintainerOnlyPath);
+            const yamlDataChangeCounts = (file) => {
+              const counts = { additions: 0, deletions: 0 };
+              for (const line of (file.patch || '').split('\n')) {
+                if (!/^[+-]/.test(line) || /^[+-]{3}/.test(line)) {
+                  continue;
+                }
+
+                const value = line.slice(1).trim();
+                if (value === '' || value.startsWith('#')) {
+                  continue;
+                }
+
+                if (line.startsWith('+')) {
+                  counts.additions += 1;
+                } else {
+                  counts.deletions += 1;
+                }
+              }
+              return counts;
+            };
+            const netYamlDataRemoval = (file) => {
+              const counts = yamlDataChangeCounts(file);
+              return counts.deletions > 0 && counts.deletions > counts.additions;
+            };
+            const changesYamlKey = (file, key) =>
+              (file.patch || '')
+                .split('\n')
+                .some((line) =>
+                  /^[+-]/.test(line) &&
+                  !/^[+-]{3}/.test(line) &&
+                  new RegExp(`^[-+]\\s*(?:-\\s*)?${key}:\\s*`).test(line));
+            const parseYamlScalar = (value) => {
+              const scalar = value
+                .replace(/\s+#.*$/, '')
+                .trim();
+              return scalar.replace(/^(['"])(.*)\1$/, '$2');
+            };
+            const readPullRequestFile = async (repoInfo, ref, path) => {
+              if (!repoInfo?.owner?.login || !repoInfo.name || !ref) {
+                return null;
+              }
+
+              try {
+                const response = await github.rest.repos.getContent({
+                  owner: repoInfo.owner.login,
+                  repo: repoInfo.name,
+                  path,
+                  ref,
+                });
+                const data = response.data;
+                if (Array.isArray(data) || data.type !== 'file' || !data.content) {
+                  return null;
+                }
+                return Buffer.from(data.content, data.encoding || 'base64').toString('utf8');
+              } catch (error) {
+                if ([403, 404, 409, 422].includes(error.status)) {
+                  return null;
+                }
+                throw error;
+              }
+            };
+            const parseSdkVersions = (text) => {
+              if (!text) {
+                return [];
+              }
+
+              const versions = [];
+              let inSdk = false;
+              let inVersions = false;
+              let sdkIndent = 0;
+              let versionsIndent = 0;
+
+              for (const line of text.split('\n')) {
+                const trimmed = line.trim();
+                if (trimmed === '' || trimmed.startsWith('#')) {
+                  continue;
+                }
+
+                const indent = line.match(/^ */)[0].length;
+                if (/^sdk:\s*$/.test(trimmed)) {
+                  inSdk = true;
+                  inVersions = false;
+                  sdkIndent = indent;
+                  continue;
+                }
+
+                if (inSdk && indent <= sdkIndent) {
+                  inSdk = false;
+                  inVersions = false;
+                }
+                if (!inSdk) {
+                  continue;
+                }
+
+                if (/^versions:\s*$/.test(trimmed)) {
+                  inVersions = true;
+                  versionsIndent = indent;
+                  continue;
+                }
+
+                if (inVersions && indent <= versionsIndent && !trimmed.startsWith('- ')) {
+                  inVersions = false;
+                }
+                if (!inVersions || indent <= versionsIndent || !trimmed.startsWith('- ')) {
+                  continue;
+                }
+
+                const version = trimmed
+                  .slice(2)
+                  .trim();
+                if (version) {
+                  versions.push(parseYamlScalar(version));
+                }
+              }
+
+              return versions;
+            };
+            const parseManifestRoutes = (text) => {
+              if (!text) {
+                return [];
+              }
+
+              const routes = [];
+              let inManifests = false;
+              let manifestsIndent = 0;
+              let itemIndent = null;
+
+              for (const line of text.split('\n')) {
+                const trimmed = line.trim();
+                if (trimmed === '' || trimmed.startsWith('#')) {
+                  continue;
+                }
+
+                const indent = line.match(/^ */)[0].length;
+                if (/^manifests:\s*$/.test(trimmed)) {
+                  inManifests = true;
+                  manifestsIndent = indent;
+                  itemIndent = null;
+                  continue;
+                }
+
+                if (inManifests && indent <= manifestsIndent) {
+                  inManifests = false;
+                  itemIndent = null;
+                }
+                if (!inManifests) {
+                  continue;
+                }
+
+                if (trimmed.startsWith('- ')) {
+                  itemIndent = indent;
+                  const name = /^-\s*name:\s*(.+)$/.exec(trimmed)?.[1];
+                  if (name) {
+                    routes.push(parseYamlScalar(name));
+                  }
+                  continue;
+                }
+
+                if (itemIndent !== null && indent > itemIndent) {
+                  const name = /^name:\s*(.+)$/.exec(trimmed)?.[1];
+                  if (name) {
+                    routes.push(parseYamlScalar(name));
+                  }
+                }
+              }
+
+              return routes;
+            };
+            const compareOrderedLists = (baseValues, headValues) => {
+              const baseSet = new Set(baseValues);
+              const headSet = new Set(headValues);
+              const added = headValues.filter((value) => !baseSet.has(value));
+              const removed = baseValues.filter((value) => !headSet.has(value));
+              const reordered =
+                added.length === 0 &&
+                removed.length === 0 &&
+                baseValues.join('\0') !== headValues.join('\0');
+              return {
+                added,
+                removed,
+                reordered,
+                changed: added.length > 0 || removed.length > 0 || reordered,
+              };
+            };
+
+            const manifestPathRoutes = [...new Set(
+              changedFiles
+                .flatMap((file) =>
+                  filePaths(file).map(routeFromManifestPath).filter(Boolean))
+            )].sort();
+            const sourceYamlFiles = changedFiles.filter(isSourceYaml);
+            const sourceRootFiles = changedFiles.filter((file) =>
+              pathWas(file, (path) => path === sourceRootPath) ||
+              pathNow(file, (path) => path === sourceRootPath));
+            const workflowFiles = changedFiles.filter((file) =>
+              pathWas(file, isWorkflowPath) || pathNow(file, isWorkflowPath));
+            const documentationFiles = changedFiles.filter((file) =>
+              filePaths(file).some(isDocumentationPath));
+            const sourceRootChanged = changedFiles.some((file) =>
+              pathWas(file, (path) => path === sourceRootPath) ||
+              pathNow(file, (path) => path === sourceRootPath));
+            const sourceRootRemoved = changedFiles.some((file) =>
+              pathWas(file, (path) => path === sourceRootPath) &&
+              !pathNow(file, (path) => path === sourceRootPath));
+            const sourceRootAdded = changedFiles.some((file) =>
+              !pathWas(file, (path) => path === sourceRootPath) &&
+              pathNow(file, (path) => path === sourceRootPath));
+            let baseSourceRoot = null;
+            let headSourceRoot = null;
+            if (sourceRootChanged) {
+              [baseSourceRoot, headSourceRoot] = await Promise.all([
+                readPullRequestFile(pullRequest.base.repo, pullRequest.base.sha, sourceRootPath),
+                readPullRequestFile(pullRequest.head.repo, pullRequest.head.sha, sourceRootPath),
+              ]);
+            }
+            const sourceRootContentsCompared =
+              (sourceRootAdded && headSourceRoot !== null) ||
+              (sourceRootRemoved && baseSourceRoot !== null) ||
+              (
+                !sourceRootAdded &&
+                !sourceRootRemoved &&
+                baseSourceRoot !== null &&
+                headSourceRoot !== null
+              );
+            const manifestAdds = changedFiles.filter((file) =>
+              !pathWas(file, isManifestPath) && pathNow(file, isManifestPath));
+            const manifestRemovals = changedFiles.filter((file) =>
+              pathWas(file, isManifestPath) && !pathNow(file, isManifestPath));
+            const manifestRouteRenames = changedFiles.filter((file) =>
+              pathWas(file, isManifestPath) &&
+              pathNow(file, isManifestPath) &&
+              routeFromManifestPath(file.previous_filename || file.filename) !==
+                routeFromManifestPath(file.filename));
+            const manifestFileAddedRoutes = [...new Set(
+              manifestAdds
+                .map((file) => routeFromManifestPath(file.filename))
+                .filter(Boolean)
+            )].sort();
+            const manifestFileRemovedRoutes = [...new Set(
+              manifestRemovals
+                .map((file) => routeFromManifestPath(file.previous_filename || file.filename))
+                .filter(Boolean)
+            )].sort();
+            const manifestRenamedRoutes = manifestRouteRenames
+              .map((file) => ({
+                from: routeFromManifestPath(file.previous_filename || file.filename),
+                to: routeFromManifestPath(file.filename),
+              }))
+              .filter((route) => route.from && route.to)
+              .sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
+            const manifestModifiedRoutes = [...new Set(
+              changedFiles
+                .filter((file) =>
+                  pathWas(file, isManifestPath) &&
+                  pathNow(file, isManifestPath) &&
+                  routeFromManifestPath(file.previous_filename || file.filename) ===
+                    routeFromManifestPath(file.filename))
+                .map((file) => routeFromManifestPath(file.filename))
+                .filter(Boolean)
+            )].sort();
+            const extractRootManifestPatchRoutes = (sign) =>
+              sourceRootFiles
+                .flatMap((file) => (file.patch || '').split('\n'))
+                .map((line) =>
+                  line.match(new RegExp(`^\\${sign}\\s*-\\s*name:\\s*(.+)$`))?.[1])
+                .filter(Boolean)
+                .map(parseYamlScalar);
+            let rootManifestRouteChanges = {
+              added: [],
+              removed: [],
+              reordered: false,
+              changed: false,
+              exact: false,
+            };
+            if (sourceRootChanged) {
+              if (sourceRootContentsCompared) {
+                rootManifestRouteChanges = {
+                  ...compareOrderedLists(
+                    parseManifestRoutes(baseSourceRoot),
+                    parseManifestRoutes(headSourceRoot),
+                  ),
+                  exact: true,
+                };
+              } else {
+                const addedRootManifestRoutes = extractRootManifestPatchRoutes('+');
+                const removedRootManifestRoutes = extractRootManifestPatchRoutes('-');
+                rootManifestRouteChanges = {
+                  added: addedRootManifestRoutes,
+                  removed: removedRootManifestRoutes,
+                  reordered: false,
+                  changed:
+                    addedRootManifestRoutes.length > 0 ||
+                    removedRootManifestRoutes.length > 0,
+                  exact: false,
+                };
+              }
+            }
+            const manifestAddedRoutes = [...new Set([
+              ...manifestFileAddedRoutes,
+              ...rootManifestRouteChanges.added,
+            ])].sort();
+            const manifestRemovedRoutes = [...new Set([
+              ...manifestFileRemovedRoutes,
+              ...rootManifestRouteChanges.removed,
+            ])].sort();
+            const manifestRoutes = [...new Set([
+              ...manifestPathRoutes,
+              ...manifestAddedRoutes,
+              ...manifestRemovedRoutes,
+            ])].sort();
+            const sourceDataRemovals = sourceYamlFiles.some((file) =>
+              pathWas(file, isSourceYamlPath) &&
+              pathNow(file, isSourceYamlPath) &&
+              netYamlDataRemoval(file));
+            const largeSourceYamlDiffs = sourceYamlFiles.filter((file) =>
+              pathWas(file, isSourceYamlPath) &&
+              pathNow(file, isSourceYamlPath) &&
+              !file.patch);
+            const existingSourceYamlFiles = sourceYamlFiles.filter((file) =>
+              pathWas(file, isSourceYamlPath));
+            const repositoryUrlChanges = existingSourceYamlFiles.some((file) =>
+              changesYamlKey(file, 'url'));
+            const packagePathChanges = existingSourceYamlFiles.some((file) =>
+              changesYamlKey(file, 'path'));
+            const releaseRecordTouches = sourceYamlFiles.some((file) =>
+              (file.patch || '').includes('releases:') ||
+              changesYamlKey(file, 'version') ||
+              changesYamlKey(file, 'tag') ||
+              changesYamlKey(file, 'commit'));
+            const extractSdkPatchVersions = (sign) =>
+              sourceRootFiles
+                .flatMap((file) => (file.patch || '').split('\n'))
+                .map((line) => line.match(new RegExp(`^\\${sign}\\s{4,}-\\s*([^#\\s]+)\\s*(?:#.*)?$`))?.[1])
+                .filter(Boolean);
+            let sdkVersionChanges = {
+              added: [],
+              removed: [],
+              reordered: false,
+              changed: false,
+              exact: false,
+            };
+            if (sourceRootChanged) {
+              if (sourceRootContentsCompared) {
+                sdkVersionChanges = {
+                  ...compareOrderedLists(
+                    parseSdkVersions(baseSourceRoot),
+                    parseSdkVersions(headSourceRoot),
+                  ),
+                  exact: true,
+                };
+              } else {
+                const addedSdkPatchVersions = extractSdkPatchVersions('+');
+                const removedSdkPatchVersions = extractSdkPatchVersions('-');
+                sdkVersionChanges = {
+                  added: addedSdkPatchVersions,
+                  removed: removedSdkPatchVersions,
+                  reordered: false,
+                  changed:
+                    addedSdkPatchVersions.length > 0 ||
+                    removedSdkPatchVersions.length > 0,
+                  exact: false,
+                };
+              }
+            }
+
+            let risk = 'risk:low';
+            const highReasons = [];
+            const mediumReasons = [];
+
+            if (workflowFiles.length > 0) {
+              highReasons.push('GitHub workflow files changed');
+            }
+            if (sourceRootRemoved) {
+              highReasons.push('Source root manifest was removed or renamed');
+            }
+            if (manifestRemovedRoutes.length > 0) {
+              highReasons.push('Manifest routes were removed');
+            }
+            if (manifestRouteRenames.length > 0) {
+              highReasons.push('Manifest routes were renamed');
+            }
+            if (sourceDataRemovals) {
+              highReasons.push('Source YAML contains net removed data lines');
+            }
+            if (largeSourceYamlDiffs.length > 0) {
+              highReasons.push('Source YAML diff is too large to summarize safely');
+            }
+            if (repositoryUrlChanges) {
+              highReasons.push('Repository or upstream URL fields changed');
+            }
+            if (packagePathChanges) {
+              highReasons.push('Package path fields changed');
+            }
+
+            if (sourceRootChanged) {
+              mediumReasons.push('Source root metadata changed');
+            }
+            if (manifestAddedRoutes.length > 0) {
+              mediumReasons.push('New package manifest route added');
+            }
+            if (sourceYamlFiles.length > 0) {
+              mediumReasons.push('Source YAML files changed');
+            }
+            if (releaseRecordTouches) {
+              mediumReasons.push('Package release or SDK version fields changed');
+            }
+
+            if (highReasons.length > 0) {
+              risk = 'risk:high';
+            } else if (
+              mediumReasons.length > 0 ||
+              changedFiles.some((file) => !isMaintainerOnly(file))
+            ) {
+              risk = 'risk:medium';
+            }
+
+            const typeLabels = [];
+            if (sdkVersionChanges.changed) {
+              typeLabels.push('type:sdk');
+            }
+            if (
+              manifestAddedRoutes.length > 0 ||
+              manifestRemovedRoutes.length > 0 ||
+              manifestRenamedRoutes.length > 0 ||
+              manifestModifiedRoutes.length > 0
+            ) {
+              typeLabels.push('type:manifest');
+            }
+            if (releaseRecordTouches) {
+              typeLabels.push('type:release-records');
+            }
+            if (documentationFiles.length > 0) {
+              typeLabels.push('type:docs');
+            }
+            if (workflowFiles.length > 0) {
+              typeLabels.push('type:workflow');
+            }
+            const labelsToApply = [risk, ...typeLabels];
+
+            for (const [name, data] of Object.entries(labelDefinitions)) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+                try {
+                  await github.rest.issues.createLabel({
+                    owner,
+                    repo,
+                    name,
+                    color: data.color,
+                    description: data.description,
+                  });
+                } catch (createError) {
+                  if (createError.status !== 422) {
+                    throw createError;
+                  }
+                }
+              }
+            }
+
+            const currentIssue = await github.rest.issues.get({
+              owner,
+              repo,
+              issue_number: pull_number,
+            });
+            const existingLabels = currentIssue.data.labels.map((label) =>
+              typeof label === 'string' ? label : label.name);
+            const labelNamesToApply = [...new Set(labelsToApply)];
+            for (const label of Object.keys(labelDefinitions)) {
+              if (!labelNamesToApply.includes(label) && existingLabels.includes(label)) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: pull_number,
+                    name: label,
+                  });
+                } catch (error) {
+                  if (error.status !== 404) {
+                    throw error;
+                  }
+                }
+              }
+            }
+            const labelsToAdd = labelNamesToApply.filter((label) =>
+              !existingLabels.includes(label));
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: pull_number,
+                labels: labelsToAdd,
+              });
+            }
+
+            const formatList = (items) =>
+              items.length === 0
+                ? '- none'
+                : items.map((item) => `- ${item}`).join('\n');
+            const codeSpan = (value) => {
+              const text = String(value).replace(/[\r\n]+/g, ' ');
+              const backtickRuns = text.match(/`+/g) || [];
+              const tickCount = backtickRuns.reduce(
+                (max, run) => Math.max(max, run.length),
+                0,
+              ) + 1;
+              const ticks = '`'.repeat(tickCount);
+              const padding = text.startsWith('`') || text.endsWith('`') ? ' ' : '';
+              return `${ticks}${padding}${text}${padding}${ticks}`;
+            };
+            const formatCodeList = (items) =>
+              items.length === 0
+                ? '- none'
+                : items.map((item) => `- ${codeSpan(item)}`).join('\n');
+            const formatRouteRenameList = (items) =>
+              items.length === 0
+                ? '- none'
+                : items
+                  .map((item) => `- ${codeSpan(item.from)} -> ${codeSpan(item.to)}`)
+                  .join('\n');
+            const fileSummary = changedFiles
+              .map((file) => file.previous_filename
+                ? `- ${file.status}: ${codeSpan(file.previous_filename)} -> ${codeSpan(file.filename)}`
+                : `- ${file.status}: ${codeSpan(file.filename)}`)
+              .join('\n');
+            const routeText = manifestRoutes.length > 0
+              ? manifestRoutes.map(codeSpan).join(', ')
+              : 'none';
+            const typeLabelText = typeLabels.length > 0
+              ? typeLabels.map(codeSpan).join(', ')
+              : 'none';
+            const sdkVersionText = sourceRootChanged
+              ? [
+                '**Added SDK versions**',
+                formatCodeList(sdkVersionChanges.added),
+                '',
+                '**Removed SDK versions**',
+                formatCodeList(sdkVersionChanges.removed),
+                '',
+                `**Reordered SDK versions:** ${sdkVersionChanges.reordered ? 'yes' : 'no'}`,
+                sdkVersionChanges.exact
+                  ? ''
+                  : 'SDK version details are patch-based because file contents could not be compared directly.',
+              ].filter(Boolean).join('\n')
+              : '- none';
+            const manifestRouteText = [
+              '**Added routes**',
+              formatCodeList(manifestAddedRoutes),
+              '',
+              '**Removed routes**',
+              formatCodeList(manifestRemovedRoutes),
+              '',
+              '**Renamed routes**',
+              formatRouteRenameList(manifestRenamedRoutes),
+              '',
+              '**Modified routes**',
+              formatCodeList(manifestModifiedRoutes),
+            ].join('\n');
+            const reasons = risk === 'risk:high'
+              ? highReasons
+              : risk === 'risk:medium'
+                ? mediumReasons
+                : ['Documentation, template, or maintainer-only change'];
+            const checklist = [];
+
+            if (sourceRootChanged) {
+              checklist.push('Confirm SDK versions and source-level metadata are intentional.');
+            }
+            if (sourceRootRemoved) {
+              checklist.push('Confirm the source root `fluoh.yaml` removal or rename is intentional.');
+            }
+            if (manifestAddedRoutes.length > 0) {
+              checklist.push('Confirm each new route exists in root `fluoh.yaml` and `manifests/<name>/fluoh.yaml`.');
+            }
+            if (manifestRemovedRoutes.length > 0 || manifestRenamedRoutes.length > 0) {
+              checklist.push('Confirm removed or renamed manifest routes should no longer resolve through `fluoh source`.');
+            }
+            if (repositoryUrlChanges) {
+              checklist.push('Verify changed repository or upstream URLs point to the intended FlutterOH/upstream repositories.');
+            }
+            if (packagePathChanges) {
+              checklist.push('Verify changed package paths still match the package repository layout.');
+            }
+            if (releaseRecordTouches) {
+              checklist.push('Confirm release records come from published `fluoh package release` tags.');
+            }
+            if (sourceDataRemovals) {
+              checklist.push('Review removed Source data carefully before merging.');
+            }
+            if (largeSourceYamlDiffs.length > 0) {
+              checklist.push('Open the Source YAML diff manually because GitHub did not include the full patch.');
+            }
+            if (workflowFiles.length > 0) {
+              checklist.push('Review workflow permission and trigger changes before merging.');
+            }
+            if (checklist.length === 0) {
+              checklist.push('Review the PR normally and confirm CI passes.');
+            }
+
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: pull_number, per_page: 100 },
+            );
+            const previous = comments.slice().reverse().find((comment) =>
+              comment.user?.type === 'Bot' && (comment.body || '').includes(marker));
+            const checkedChecklistItems = new Set(
+              (previous?.body || '')
+                .split('\n')
+                .map((line) => /^- \[x\]\s+(.+)$/i.exec(line)?.[1])
+                .filter(Boolean),
+            );
+            const checklistText = checklist
+              .map((item) =>
+                `- [${checkedChecklistItems.has(item) ? 'x' : ' '}] ${item}`)
+              .join('\n');
+
+            const body = `${marker}
+            ## Source PR summary
+
+            **Risk label:** \`${risk}\`
+            **Change type labels:** ${typeLabelText}
+            **Changed files:** ${changedFiles.length}
+            **Changed manifest routes:** ${routeText}
+
+            **Risk reasons**
+            ${formatList(reasons)}
+
+            **SDK versions**
+            ${sdkVersionText}
+
+            **Manifest routes**
+            ${manifestRouteText}
+
+            **Maintainer checklist**
+            ${checklistText}
+
+            **Changed files**
+            ${fileSummary}
+            `.replace(/^ {12}/gm, '').trim();
+
+            if (previous) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: previous.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pull_number,
+                body,
+              });
+            }

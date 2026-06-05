@@ -51,20 +51,57 @@ jobs:
 
       - name: Check official source
         working-directory: source
+        shell: bash
         run: |
+          log_file="$RUNNER_TEMP/fluoh-source-check.log"
+
           case "${{ github.event_name }}" in
             pull_request)
-              fluoh source check --base-ref "origin/${{ github.base_ref }}" .
+              command_text="fluoh source check --base-ref origin/${{ github.base_ref }} ."
+              check_command=(fluoh source check --base-ref "origin/${{ github.base_ref }}" .)
               ;;
             push)
               before_ref="${{ github.event.before }}"
               if [ -n "$before_ref" ] && [ "$before_ref" != "0000000000000000000000000000000000000000" ]; then
-                fluoh source check --base-ref "$before_ref" --skip-release-checks .
+                command_text="fluoh source check --base-ref $before_ref --skip-release-checks ."
+                check_command=(fluoh source check --base-ref "$before_ref" --skip-release-checks .)
               else
-                fluoh source check --skip-release-checks .
+                command_text="fluoh source check --skip-release-checks ."
+                check_command=(fluoh source check --skip-release-checks .)
               fi
               ;;
             *)
-              fluoh source check --skip-release-checks .
+              command_text="fluoh source check --skip-release-checks ."
+              check_command=(fluoh source check --skip-release-checks .)
               ;;
           esac
+
+          set +e
+          "${check_command[@]}" > "$log_file" 2>&1
+          status=$?
+          set -e
+
+          cat "$log_file"
+
+          result="failed"
+          if [ "$status" -eq 0 ]; then
+            result="passed"
+          fi
+
+          {
+            echo "## Source validation"
+            echo
+            echo "- Event: \`${{ github.event_name }}\`"
+            echo "- Command: \`$command_text\`"
+            echo "- Result: $result"
+            echo
+            echo "<details><summary>fluoh source check output</summary>"
+            echo
+            echo '```text'
+            cat "$log_file"
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$status"
