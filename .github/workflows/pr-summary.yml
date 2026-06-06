@@ -94,7 +94,7 @@ jobs:
             const statusLabelDefinitions = {
               'needs-validation': {
                 color: 'FBCA04',
-                description: 'PR template validation evidence is missing.',
+                description: 'PR template validation confirmation is missing.',
               },
             };
             const labelDefinitions = {
@@ -192,21 +192,19 @@ jobs:
                 .trim();
               return scalar.replace(/^(['"])(.*)\1$/, '$2');
             };
-            const hasFilledValidationResult = (body) => {
-              const match = (body || '').match(/Validation result:\s*([\s\S]*?)(?:\n## |\n# |$)/i);
-              if (!match) {
-                return false;
-              }
-
-              return match[1]
+            const markdownSection = (body, heading) => {
+              const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const match = (body || '').match(new RegExp(`(?:^|\\r?\\n)## ${escaped}[ \\t]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s+|$)`, 'i'));
+              return match?.[1] || '';
+            };
+            const checkedTemplateLines = (body, heading) =>
+              markdownSection(body, heading)
                 .split('\n')
                 .map((line) => line.trim())
-                .some((line) =>
-                  line !== '' &&
-                  line !== '-' &&
-                  line !== '- [ ]' &&
-                  !/^```/.test(line));
-            };
+                .map((line) => /^-\s*\[[xX]\]\s+(.+)$/.exec(line)?.[1]?.trim())
+                .filter(Boolean);
+            const hasCheckedLine = (checkedLines, pattern) =>
+              checkedLines.some((line) => pattern.test(line));
             const readPullRequestFile = async (repoInfo, ref, path) => {
               if (!repoInfo?.owner?.login || !repoInfo.name || !ref) {
                 return null;
@@ -615,11 +613,59 @@ jobs:
             if (templateFiles.length > 0) {
               areaLabels.push('area:template');
             }
-            const validationEvidenceMissing = !hasFilledValidationResult(pullRequest.body || '');
+            const validationConfirmationLines = checkedTemplateLines(
+              pullRequest.body || '',
+              'Validation Confirmation',
+            );
+            const changeTypeLines = checkedTemplateLines(
+              pullRequest.body || '',
+              'Change Type',
+            );
+            const manualReleaseRecordRefresh =
+              changeTypeLines.some((line) =>
+                /Package release-record sync refresh/i.test(line)) ||
+              /^chore\(source\): sync package release records/i.test(
+                pullRequest.title || '',
+              );
+            const validationExpectations = [
+              {
+                text: 'PR author confirmed `git diff --check` was run.',
+                pattern: /git diff --check/i,
+                required: true,
+              },
+            ];
+            if (sourceYamlFiles.length > 0) {
+              validationExpectations.push({
+                text: 'PR author confirmed `fluoh source check .` was run.',
+                pattern: /fluoh source check \./i,
+                required: true,
+              });
+            }
+            if (releaseRecordTouches || manualReleaseRecordRefresh) {
+              validationExpectations.push({
+                text: 'Release-record PRs confirm `fluoh source sync .` and `fluoh source check --skip-release-checks .` were run.',
+                pattern: /fluoh source sync \..*fluoh source check --skip-release-checks \./i,
+                required: true,
+              });
+            }
+            if (workflowFiles.length > 0) {
+              validationExpectations.push({
+                text: 'Maintainer reviewed workflow triggers and permissions.',
+                pattern: /reviewed triggers and permissions/i,
+                required: true,
+              });
+            }
+            const missingValidationConfirmations = validationExpectations
+              .filter((item) =>
+                item.required &&
+                !hasCheckedLine(validationConfirmationLines, item.pattern))
+              .map((item) => item.text);
+            const validationConfirmationMissing =
+              missingValidationConfirmations.length > 0;
             const labelsToApply = [
               risk,
               ...areaLabels,
-              ...(validationEvidenceMissing ? ['needs-validation'] : []),
+              ...(validationConfirmationMissing ? ['needs-validation'] : []),
             ];
 
             for (const [name, data] of Object.entries(labelDefinitions)) {
@@ -720,8 +766,8 @@ jobs:
             const areaLabelText = areaLabels.length > 0
               ? [...new Set(areaLabels)].map(codeSpan).join(', ')
               : 'none';
-            const validationEvidenceText = validationEvidenceMissing
-              ? 'missing from PR template'
+            const validationConfirmationText = validationConfirmationMissing
+              ? 'missing required confirmation from PR template'
               : 'present in PR template';
             const sdkVersionText = sourceRootChanged
               ? [
@@ -768,16 +814,8 @@ jobs:
               ...(workflowFiles.length > 0 ? ['Workflow changes may affect source validation or scheduled sync automation.'] : []),
             ];
             const sourceImpactText = routeSourceImpact;
-            const expectedValidationEvidence = ['PR author provided `git diff --check` evidence.'];
-            if (sourceYamlFiles.length > 0) {
-              expectedValidationEvidence.push('PR author provided `fluoh source check .` evidence.');
-            }
-            if (releaseRecordTouches) {
-              expectedValidationEvidence.push('Release-record refresh PRs include `fluoh source sync .` and `fluoh source check --skip-release-checks .` evidence when applicable.');
-            }
-            if (workflowFiles.length > 0) {
-              expectedValidationEvidence.push('Maintainer reviewed workflow triggers and permissions.');
-            }
+            const expectedValidationConfirmation = validationExpectations
+              .map((item) => item.text);
             const manifestRouteText = [
               '**Added routes**',
               formatCodeList(manifestAddedRoutes),
@@ -828,8 +866,8 @@ jobs:
             if (workflowFiles.length > 0) {
               checklist.push('Review workflow permission and trigger changes before merging.');
             }
-            if (validationEvidenceMissing) {
-              checklist.push('Ask the author to fill the PR template `Validation result` field.');
+            if (validationConfirmationMissing) {
+              checklist.push('Ask the author to complete the required PR template `Validation Confirmation` checklist items.');
             }
             if (checklist.length === 0) {
               checklist.push('Review the PR normally and confirm CI passes.');
@@ -859,7 +897,7 @@ jobs:
             **Changed areas:** ${areaLabelText}
             **Changed files:** ${changedFiles.length}
             **Changed manifest routes:** ${routeText}
-            **Validation evidence:** ${validationEvidenceText}
+            **Validation confirmation:** ${validationConfirmationText}
 
             **Risk reasons**
             ${formatList(reasons)}
@@ -876,8 +914,11 @@ jobs:
             **Source impact**
             ${formatList(sourceImpactText)}
 
-            **Expected validation evidence**
-            ${formatList(expectedValidationEvidence)}
+            **Expected validation confirmation**
+            ${formatList(expectedValidationConfirmation)}
+
+            **Missing validation confirmation**
+            ${formatList(missingValidationConfirmations)}
 
             **Maintainer checklist**
             ${checklistText}

@@ -4,6 +4,11 @@ title: "[SDK] "
 labels:
   - sdk
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for SDK version metadata in root `fluoh.yaml`.
+        Add only complete SDK tags that exist in the configured SDK repository and should be visible through `fluoh sdk list`.
   - type: input
     id: version
     attributes:
@@ -32,8 +37,8 @@ body:
   - type: textarea
     id: proof
     attributes:
-      label: Tag proof
-      description: Link the tag or paste command output showing the tag exists or should be removed.
+      label: SDK tag reference
+      description: Link the tag, paste a lookup command result, or explain why the metadata should be removed or corrected.
     validations:
       required: true
   - type: textarea
@@ -43,3 +48,14 @@ body:
       description: Describe who should consume this SDK version and whether older versions should remain listed.
     validations:
       required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: Added SDK versions exist as tags in the SDK repository.
+          required: false
+        - label: Added SDK versions should be visible through `fluoh sdk list`.
+          required: false
+        - label: Removing or correcting SDK metadata has been called out in the user impact section.
+          required: false

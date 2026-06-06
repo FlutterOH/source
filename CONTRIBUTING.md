@@ -169,9 +169,9 @@ First-time package intake uses a pull request to this repository:
    tags.
 5. Run `fluoh source check .` and `git diff --check`.
 6. Open a pull request that lists the manifest route name, package repository,
-   published release tag, and source check result. Upstream paths, SDK
-   lines, and release records should be verifiable from the manifest diff and
-   the published package release tag.
+   published release tag, and confirms the local source check was run. Upstream
+   paths, SDK lines, and release records should be verifiable from the manifest
+   diff and the published package release tag.
 
 After the manifest is merged, `.github/workflows/sync.yml` can keep release
 records current from package repository tags. For manual refreshes after a
@@ -183,9 +183,12 @@ fluoh source check --skip-release-checks .
 git diff --check
 ```
 
-This validates the dirty source snapshot produced by sync. Release-record
-verification requires a committed diff; after committing the sync result, run
-`fluoh source check --base-ref <base> .` locally or let pull request CI run it.
+This validates the dirty source snapshot produced by sync. If the refresh will
+be submitted as a manual source-data pull request, release-record verification
+requires a committed diff; after committing the generated changes, run
+`fluoh source check --base-ref <base> .` locally before opening the pull request.
+Routine scheduled sync commits do not have a PR author; they trust package
+repository release tags that were produced after package-side verification.
 
 Maintainers can also trigger the `sync source` workflow from GitHub Actions for
 an immediate repository-side refresh before the next scheduled run.
@@ -248,16 +251,24 @@ It should remain focused on source checking:
 
 - Install the released `fluoh` from pub.dev, falling back to the default
   `FlutterOH/fluoh` branch if the package is not available.
-- Check pull requests through `fluoh source check --base-ref <base> .` so
-  SDK tag and package release verification stay limited to changed source data.
+- Check pull requests through
+  `fluoh source check --base-ref <base> --skip-release-checks .` so CI validates
+  source metadata and changed SDK tags without cloning package release
+  repositories or installing FlutterOH SDKs.
 - Check pushes to `main` through
   `fluoh source check --base-ref <before> --skip-release-checks .` so direct
   source-data pushes still validate changed SDK tags without cloning package
-  release repositories. PRs remain the package release-verification gate.
+  release repositories.
 - Check manual `workflow_dispatch` runs through
   `fluoh source check --skip-release-checks .` as a source snapshot check.
 
 Source checking belongs to the `fluoh` CLI.
+For first-time manifest intake and manual source-data PRs, authors should still
+confirm they ran local `fluoh source check .`. GitHub CI intentionally uses
+`--skip-release-checks` to avoid running package repositories on hosted Linux
+runners. Normal package releases after manifest intake are imported by scheduled
+sync without a source PR; package-side verification is enforced before
+`fluoh package release`.
 
 `.github/workflows/sync.yml` runs daily and also supports
 `workflow_dispatch` for temporary manual runs from GitHub Actions. It checks
@@ -271,8 +282,10 @@ git diff --check
 ```
 
 When sync changes source data, the workflow commits directly to `main` after
-running `fluoh source check --base-ref origin/main .` on the generated commit,
-which verifies only the release records imported by the sync diff.
+running `fluoh source check --base-ref origin/main --skip-release-checks .` on
+the generated commit. Package release verification, OHOS builds, OHOS runs, and
+device checks belong to the package repository before `fluoh package release`,
+not to this Source CI. The sync workflow imports published source metadata only.
 Use `fluoh source check --all .` only for explicit manual audits, not routine
 CI, because official sources can contain many package manifests.
 
@@ -283,7 +296,7 @@ Pull requests should describe:
 - User-visible source data changes.
 - Added or removed SDK versions.
 - Added, removed, or changed package manifests.
-- Validation commands and results.
+- Validation confirmations.
 - Any maintainer workflow, issue template, PR template, or CI impact.
 
 Keep commits focused. Conventional Commits are preferred:

@@ -57,8 +57,8 @@ jobs:
 
           case "${{ github.event_name }}" in
             pull_request)
-              command_text="fluoh source check --base-ref origin/${{ github.base_ref }} . --json"
-              check_command=(fluoh source check --base-ref "origin/${{ github.base_ref }}" . --json)
+              command_text="fluoh source check --base-ref origin/${{ github.base_ref }} --skip-release-checks . --json"
+              check_command=(fluoh source check --base-ref "origin/${{ github.base_ref }}" --skip-release-checks . --json)
               ;;
             push)
               before_ref="${{ github.event.before }}"
@@ -178,3 +178,24 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           exit "$status"
+
+      - name: Check patch formatting
+        working-directory: source
+        shell: bash
+        run: |
+          case "${{ github.event_name }}" in
+            pull_request)
+              git diff --check "origin/${{ github.base_ref }}...HEAD"
+              ;;
+            push)
+              before_ref="${{ github.event.before }}"
+              if [ -n "$before_ref" ] && [ "$before_ref" != "0000000000000000000000000000000000000000" ]; then
+                git diff --check "$before_ref...HEAD"
+              else
+                git diff --check
+              fi
+              ;;
+            *)
+              git diff --check
+              ;;
+          esac

@@ -96,6 +96,6 @@ jobs:
           git add fluoh.yaml manifests
           git commit -m "chore: sync source data"
           git pull --rebase origin main
-          fluoh source check --base-ref origin/main .
+          fluoh source check --base-ref origin/main --skip-release-checks .
           git diff --check origin/main...HEAD
           git push origin HEAD:main

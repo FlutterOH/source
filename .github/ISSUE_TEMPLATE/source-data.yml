@@ -19,11 +19,20 @@ body:
         - Root fluoh.yaml
         - SDK releases
         - Package manifests
+        - Scheduled sync or release-record import
         - README or contributing docs
         - Issue or pull request templates
         - GitHub Actions workflow
     validations:
       required: true
+  - type: input
+    id: target
+    attributes:
+      label: Affected path or route
+      description: Optional file path, manifest route, package name, SDK version, or workflow name.
+      placeholder: manifests/camera/fluoh.yaml
+    validations:
+      required: false
   - type: textarea
     id: current
     attributes:
@@ -39,10 +48,10 @@ body:
     validations:
       required: true
   - type: textarea
-    id: evidence
+    id: supporting-details
     attributes:
-      label: Evidence
-      description: Include file paths, source snippets, command output, tags, or workflow links.
+      label: Supporting details
+      description: Optional file paths, source snippets, command output, tags, or workflow links.
       placeholder: |
         fluoh source sync .
         fluoh source check --skip-release-checks .

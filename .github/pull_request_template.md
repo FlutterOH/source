@@ -1,6 +1,6 @@
 ## Summary
 
--
+Describe what source data or maintainer workflow changes, and why.
 
 ## Title Format
 
@@ -20,30 +20,33 @@ Use one of:
 - [ ] Package release-record sync refresh
 - [ ] Documentation, workflow, issue template, or PR template
 
-## Intake Info (if applicable)
+## Source Data Scope
+
+Fill only the lines that apply.
 
 - Manifest route name:
 - Package repository:
 - Published release tag:
+- SDK version:
+- Affected workflow/template:
 
-## Source Check
+## Validation Confirmation
 
-- [ ] Source data changes pass `fluoh source check .`.
-- [ ] Whitespace and patch formatting pass `git diff --check`.
+- [ ] I ran `git diff --check`.
+- [ ] For source data changes, I ran `fluoh source check .`.
+- [ ] For manual release-record refreshes, I ran `fluoh source sync .` and `fluoh source check --skip-release-checks .`.
+- [ ] For workflow changes, I reviewed triggers and permissions.
 
 ## SDK Release (if applicable)
 
 - [ ] SDK version changes are intentional and backed by SDK repository tags.
-- [ ] Added SDK versions are intended to be visible through `fluoh sdk list`.
+- [ ] Added SDK versions, if any, are intended to be visible through `fluoh sdk list`.
 
-## Package Manifest (if applicable)
+## Source Boundaries (for source data changes)
 
 - [ ] Package adaptation code, package release tags, and package-owned metadata remain outside this repository.
-- [ ] Package release-record changes reference published FlutterOH package release tags, not in-progress package repository state.
-- [ ] Referenced package release tags were created by `fluoh package release` and contain package-owned `fluoh.yaml` metadata.
-- [ ] Existing manifest release-record refreshes were generated with `fluoh source sync .` when applicable.
+- [ ] Package release-record changes reference published `fluoh package release` tags, not in-progress package repository state.
 - [ ] First-time package manifests add both the root `fluoh.yaml` manifest route entry and `manifests/<manifest-name>/fluoh.yaml`.
-- [ ] First-time package manifests provide enough intake info for reviewers or automation to fetch and verify the published package release tag.
 - [ ] Unfinished adaptations are not being added to the official source.
 
 ## Maintenance Surface (if applicable)
@@ -51,9 +54,9 @@ Use one of:
 - [ ] README and contributing docs are updated when public behavior changes.
 - [ ] Workflow, issue templates, and this PR template are updated when maintainer workflow changes.
 
-## Validation
+## Local Commands
 
-Run in this source repository:
+Common commands:
 
 ```sh
 fluoh source check .
@@ -68,8 +71,13 @@ fluoh source check --skip-release-checks .
 git diff --check
 ```
 
-Release-record verification runs from the committed PR diff in CI with
-`fluoh source check --base-ref <base> .`.
+GitHub Source CI skips package release checks so it does not clone package
+repositories or install FlutterOH SDKs on hosted Linux runners. For first-time
+manifest intake and manual source-data PRs, authors should still confirm they
+ran local `fluoh source check .`. After a manifest is merged, normal package
+release records are imported by scheduled sync without a source PR; package
+release verification, OHOS build/run, and device checks must be completed in
+the package repository before publishing release tags.
 
 For first-time package manifest PRs, provide the package release locator:
 
@@ -78,7 +86,3 @@ manifest route name: <manifest-name>
 package repository: <url>
 published release tag: <tag>
 ```
-
-Validation result:
-
--

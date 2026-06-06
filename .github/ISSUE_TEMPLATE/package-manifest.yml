@@ -1,5 +1,5 @@
 name: Package manifest intake
-description: Request adding an official package manifest for the first time.
+description: Request first-time intake of a released FlutterOH package manifest.
 title: "[Package intake] "
 labels:
   - packages
@@ -7,15 +7,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this only for first-time source intake after the package repository already has published FlutterOH package release metadata from `fluoh package release`.
-        For corrections to existing package manifests, advisory text, maintenance state, repository paths, or sync behavior, use the Source data issue template instead.
-        Use title format: `[Package intake] <package-name>`, for example `[Package intake] camera`.
-        Provide only the manifest route name, package name, package repository, and published release tag. Reviewers or automation can use those values to fetch and verify release metadata.
-        The manifest route name is declared in root `fluoh.yaml` and must match `package.name` in the manifest file. It is usually the package name. For example, `camera` maps to `manifests/camera/fluoh.yaml`.
-        In-progress or unfinished adaptations should stay in the package repository and should not be added to the official source.
-        Adaptation code should stay in the package repository, not in `FlutterOH/source`.
-        The first `FlutterOH/source` pull request must add both the root `fluoh.yaml` manifest route entry and `manifests/<manifest-name>/fluoh.yaml`.
-        After the first manifest pull request is merged, new package releases normally need only new package repository release tags; scheduled sync can import them without a new `FlutterOH/source` pull request.
+        Use this only for first-time official source intake after the package repository has published a release tag with `fluoh package release`.
+        In-progress adaptations, package code, and package-owned metadata stay in the package repository.
+        For existing manifest corrections, advisory text, maintenance state, repository/path fixes, or sync behavior, use the Source data issue template.
+        After the first manifest is merged, normal package release records are imported by scheduled sync and do not need a new Source PR.
   - type: input
     id: manifest-name
     attributes:
@@ -28,13 +23,23 @@ body:
     id: package
     attributes:
       label: Package name
+      description: Package name recorded in the package-owned `fluoh.yaml`.
       placeholder: camera
+    validations:
+      required: true
+  - type: input
+    id: sdk-line
+    attributes:
+      label: SDK line
+      description: FlutterOH SDK line implemented by the published release.
+      placeholder: "3.35"
     validations:
       required: true
   - type: input
     id: implementation-repository
     attributes:
       label: FlutterOH package repository
+      description: Repository containing the package release tag.
       placeholder: https://github.com/FlutterOH/camera.git
     validations:
       required: true
@@ -49,10 +54,12 @@ body:
   - type: checkboxes
     id: basic-checks
     attributes:
-      label: Basic checks
-      description: Confirm the request is ready for source intake before reviewers or automation re-check it.
+      label: Intake confirmation
+      description: Confirm the request is ready for source intake before maintainers re-check it.
       options:
         - label: The release tag was created by `fluoh package release` and points to the intended package release.
+          required: true
+        - label: Package-side readiness checks, package tests, and OHOS verification were completed before release.
           required: true
         - label: The package repository contains its package-owned `fluoh.yaml` at the published release tag.
           required: true
@@ -64,7 +71,7 @@ body:
     id: notes
     attributes:
       label: Notes
-      description: Optional context for reviewers, such as known warnings, advisory text, or related package repository PRs.
+      description: Optional maintainer context, such as warnings, advisory text, or related package repository PRs.
       placeholder: |
         Optional maintainer notes.
     validations:

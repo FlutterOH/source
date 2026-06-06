@@ -122,10 +122,16 @@ jobs:
 
             if (sdkIssue) {
               areaLabels.add('area:sdk');
-              for (const heading of ['SDK version tag', 'SDK repository', 'Tag proof', 'User impact']) {
+              for (const heading of ['SDK version tag', 'SDK repository', 'User impact']) {
                 if (!hasValue(sectionValue(heading))) {
                   missingInfo.push(heading);
                 }
+              }
+              if (
+                !hasValue(sectionValue('SDK tag reference')) &&
+                !hasValue(sectionValue('Tag proof'))
+              ) {
+                missingInfo.push('SDK tag reference');
               }
             }
 
@@ -134,6 +140,7 @@ jobs:
               for (const heading of [
                 'Manifest route name',
                 'Package name',
+                'SDK line',
                 'FlutterOH package repository',
                 'Published release tag',
               ]) {
@@ -153,6 +160,9 @@ jobs:
               }
               if (area.includes('package manifests')) {
                 areaLabels.add('area:manifest');
+              }
+              if (area.includes('scheduled sync') || area.includes('release-record')) {
+                areaLabels.add('area:release-records');
               }
               if (area.includes('readme') || area.includes('contributing')) {
                 areaLabels.add('area:docs');
