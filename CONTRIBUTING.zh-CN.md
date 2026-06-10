@@ -138,8 +138,9 @@ package:
 当 manifest 已存在、并指向已有 release tag 的包仓库时，使用 `fluoh source sync`
 刷新 release records。Manifest metadata、advisory 文案和 frozen maintenance 说明可直接
 编辑 manifest 文件。
-`fluoh source sync` 不会自动发现新的官方 manifest；首次接入一个包时，PR 必须同时加入
-根 manifest route 条目和对应的 `manifests/<manifest-name>/fluoh.yaml`。
+`fluoh source sync` 只导入 SDK line 已被根 `sdk.versions` 覆盖的已发布 package tags；
+提交生成记录前应检查被跳过的 tags。它不会自动发现新的官方 manifest；首次接入一个包时，
+PR 必须同时加入根 manifest route 条目和对应的 `manifests/<manifest-name>/fluoh.yaml`。
 
 首次接入适配包时，通过本仓库 PR 完成：
 
@@ -203,13 +204,24 @@ fluoh --version
 fluoh source check . --schema-only
 ```
 
-只有需要让 consumer commands 使用当前 checkout 时，才添加本地源。本地源是快照；
-源文件变更后需要重新添加：
+只有需要让本机 `fluoh` 命令读取当前 checkout 时，才注册本地 source。注册时会保存一份
+快照：
 
 ```sh
 fluoh source add local .
 fluoh sdk list
 ```
+
+修改 source 文件后，先刷新这份快照，再测试消费侧命令：
+
+```sh
+fluoh source update local
+fluoh sdk list
+```
+
+在这个维护 checkout 中运行 `fluoh source sync .` 只会修改仓库文件，不会刷新已经注册的
+本地 source。需要让本机消费侧命令读取新数据时，在 sync 或编辑后运行
+`fluoh source update <name>`。
 
 提交 PR 前运行：
 

@@ -60,11 +60,18 @@ PR, push, and scheduled sync checks. Keep release verification in local
 maintainer checks or explicit manual audits; do not make routine CI clone and
 verify every package release repository.
 
-Only add a local source when consumer commands should use this checkout. Local
-sources are snapshots, so rerun this after changing source files:
+Only add a local source when source-consuming commands should use this checkout.
+Local sources are snapshots; add it once:
 
 ```sh
 fluoh source add local .
+fluoh sdk list
+```
+
+After changing source files, refresh the configured snapshot:
+
+```sh
+fluoh source update local
 fluoh sdk list
 ```
 

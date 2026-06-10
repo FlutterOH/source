@@ -33,8 +33,11 @@ fluoh sdk list
 在 Flutter 项目中选择 FlutterOH SDK line：
 
 ```sh
-fluoh sdk use 3.35 --pub-get --init-ohos
+fluoh sdk use 3.35 --pub-get
 ```
+
+当项目还没有 `ohos/` 目录时，`fluoh sdk use` 默认会初始化 OHOS 平台。只有需要单独维护
+OHOS 平台文件时，才传 `--no-init-ohos`。
 
 通过已选择的 FlutterOH SDK 运行 Flutter：
 
@@ -88,11 +91,18 @@ fluoh --version
 fluoh source check . --schema-only
 ```
 
-只有需要让 consumer commands 使用当前 checkout 时，才添加本地 source。本地 source
-是快照，每次 source 变更后都需要重新添加：
+只有需要让本机 `fluoh` 命令读取当前 checkout 时，才注册本地 source。注册时会保存一份
+快照：
 
 ```sh
 fluoh source add local .
+fluoh sdk list
+```
+
+修改 source 文件后，先刷新这份快照，再测试消费侧命令：
+
+```sh
+fluoh source update local
 fluoh sdk list
 ```
 

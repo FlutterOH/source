@@ -643,7 +643,7 @@ jobs:
             }
             if (releaseRecordTouches || manualReleaseRecordRefresh) {
               validationExpectations.push({
-                text: 'Release-record PRs confirm `fluoh source sync .` and `fluoh source check --skip-release-checks .` were run.',
+                text: 'Release-record PRs confirm sync output was reviewed and `fluoh source check --skip-release-checks .` was run.',
                 pattern: /fluoh source sync \..*fluoh source check --skip-release-checks \./i,
                 required: true,
               });

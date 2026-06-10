@@ -148,9 +148,11 @@ Rules:
 Use `fluoh source sync` to refresh release records from package repositories
 when manifests already exist and point at released package repos. Edit manifest
 files directly for manifest metadata, advisory text, and frozen maintenance
-notes. `fluoh source sync` does not discover new official manifests by itself;
-the first pull request for a package must add both the root manifest route entry
-and the matching `manifests/<manifest-name>/fluoh.yaml`.
+notes. `fluoh source sync` imports only released package tags whose SDK line is
+covered by root `sdk.versions`; review any tags it skips before committing
+generated records. It does not discover new official manifests by itself; the
+first pull request for a package must add both the root manifest route entry and
+the matching `manifests/<manifest-name>/fluoh.yaml`.
 
 First-time package intake uses a pull request to this repository:
 
@@ -224,13 +226,26 @@ For routine local validation from this repository:
 fluoh source check . --schema-only
 ```
 
-Only add a local source when consumer commands should use this checkout. Local
-sources are snapshots, so add a fresh snapshot after changing source files:
+Register this checkout only when local `fluoh` commands should read it. The
+registration stores a snapshot:
 
 ```sh
 fluoh source add local .
 fluoh sdk list
 ```
+
+After changing source files, refresh that snapshot before testing consumer
+commands:
+
+```sh
+fluoh source update local
+fluoh sdk list
+```
+
+Running `fluoh source sync .` in this maintainer checkout edits repository files
+only. It does not refresh a previously registered local source. If local `fluoh`
+commands should see the new data, run `fluoh source update <name>` after syncing
+or editing.
 
 Before opening a pull request, run:
 

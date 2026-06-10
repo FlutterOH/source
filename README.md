@@ -34,8 +34,12 @@ fluoh sdk list
 Select a FlutterOH SDK line from a Flutter project:
 
 ```sh
-fluoh sdk use 3.35 --pub-get --init-ohos
+fluoh sdk use 3.35 --pub-get
 ```
+
+`fluoh sdk use` initializes `ohos/` by default when the project does not already
+have one. Use `--no-init-ohos` only if the OHOS platform files are managed
+separately.
 
 Run Flutter through the selected FlutterOH SDK:
 
@@ -93,11 +97,19 @@ Validate this checkout after changing source files:
 fluoh source check . --schema-only
 ```
 
-Only add a local source when consumer commands should use this checkout. Local
-sources are snapshots, so add a fresh snapshot after each source change:
+Register this checkout only when local `fluoh` commands should read it. The
+registration stores a snapshot:
 
 ```sh
 fluoh source add local .
+fluoh sdk list
+```
+
+After changing source files, refresh that snapshot before testing consumer
+commands:
+
+```sh
+fluoh source update local
 fluoh sdk list
 ```
 

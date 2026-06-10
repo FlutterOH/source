@@ -27,6 +27,7 @@ Fill only the lines that apply.
 - Manifest route name:
 - Package repository:
 - Published release tag:
+- Sync notes:
 - SDK version:
 - Affected workflow/template:
 
@@ -34,7 +35,7 @@ Fill only the lines that apply.
 
 - [ ] I ran `git diff --check`.
 - [ ] For source data changes, I ran `fluoh source check .`.
-- [ ] For manual release-record refreshes, I ran `fluoh source sync .` and `fluoh source check --skip-release-checks .`.
+- [ ] For manual release-record refreshes, I reviewed the `fluoh source sync .` output and ran `fluoh source check --skip-release-checks .`.
 - [ ] For workflow changes, I reviewed triggers and permissions.
 
 ## SDK Release (if applicable)
