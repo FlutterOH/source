@@ -2,4 +2,4 @@ blank_issues_enabled: false
 contact_links:
   - name: fluoh CLI issues
     url: https://github.com/FlutterOH/fluoh/issues
-    about: Report command behavior, installation, SDK cache, or project dependency rewrite bugs in the CLI repository.
+    about: Report installation, SDK cache, project creation or dependency, app workflow, device, or CLI behavior bugs in the fluoh repository.

@@ -267,9 +267,9 @@ git diff --check
 
 如果 sync 产生源数据变更，workflow 会先在生成的 commit 上运行
 `fluoh source check --base-ref origin/main --skip-release-checks .`，再直接
-提交到 `main`。Package release verification、OHOS build、OHOS run 和设备验证
-属于 package 仓库，应在 `fluoh package release` 前完成，不属于 Source CI。sync
-workflow 只导入已发布的 source metadata。
+提交到 `main`。Package release verification、OHOS build、OHOS run、
+`fluoh drive` 证据和设备验证属于 package 仓库，应在 `fluoh package release` 前完成，
+不属于 Source CI。sync workflow 只导入已发布的 source metadata。
 `fluoh source check --all .` 只用于明确的人工全量审计，不作为常规 CI 路径，
 因为官方 source 可能包含大量 package manifests。
 

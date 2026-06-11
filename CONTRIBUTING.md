@@ -298,9 +298,10 @@ git diff --check
 
 When sync changes source data, the workflow commits directly to `main` after
 running `fluoh source check --base-ref origin/main --skip-release-checks .` on
-the generated commit. Package release verification, OHOS builds, OHOS runs, and
-device checks belong to the package repository before `fluoh package release`,
-not to this Source CI. The sync workflow imports published source metadata only.
+the generated commit. Package release verification, OHOS builds, OHOS runs,
+`fluoh drive` evidence, and device checks belong to the package repository
+before `fluoh package release`, not to this Source CI. The sync workflow imports
+published source metadata only.
 Use `fluoh source check --all .` only for explicit manual audits, not routine
 CI, because official sources can contain many package manifests.
 

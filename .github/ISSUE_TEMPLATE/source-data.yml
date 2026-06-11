@@ -10,7 +10,7 @@ body:
         Use this for `FlutterOH/source` source data and maintainer workflow.
         Use the Package manifest intake template only for first-time package manifests that already have published release tags.
         Existing package manifest corrections, advisory updates, maintenance changes, and sync issues belong here.
-        CLI behavior belongs in the `FlutterOH/fluoh` repository.
+        CLI behavior, project creation or dependency workflows, app workflow commands, and device commands belong in the `FlutterOH/fluoh` repository.
   - type: dropdown
     id: area
     attributes:
