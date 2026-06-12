@@ -76,8 +76,8 @@ Package manifest 是从包仓库 release 结果生成或整理出来的源数据
 - 包仓库已经有包仓库自己的 `fluoh.yaml`。
 - 包 release tag 记录了 FlutterOH 仓库 URL、上游 URL、package name 和 path、SDK line、
   已适配的 upstream version、release version 和 upstream commit。
-- 发布前已经通过 `fluoh package status` 查看发布就绪状态，并通过
-  `fluoh package check`。
+- 发布前已经通过 `fluoh package status` 查看发布就绪状态，并在 package 仓库完成
+  `fluoh package release` 前要求的包侧验证和发布门禁。
 - 至少已经通过 `fluoh package release` 发布一个 release tag。
 
 不要把包代码、包 release tag、未经发布流程确认的发布就绪声明或未发布的 package
@@ -204,6 +204,11 @@ fluoh --version
 fluoh source check . --schema-only
 ```
 
+`--schema-only` 只用于本地 YAML/index 校验。它会检查 Source root、SDK metadata、
+Manifest routes、route/name 一致性、release records 和 package index 构建；不会读取
+Git diff、fetch SDK tags、clone package 仓库、验证 release tags，也不会触碰已配置的
+source snapshots 和 locks。它不能和 diff、release、work-root 或 package 验证选项组合。
+
 只有需要让本机 `fluoh` 命令读取当前 checkout 时，才注册本地 source。注册时会保存一份
 快照：
 
@@ -231,8 +236,21 @@ git status --short --ignored=matching
 git diff --check
 ```
 
-包发布就绪检查、包测试和应用兼容性检查属于包仓库，应在 `fluoh package release` 前
-完成；本仓库通过 `fluoh source check` 校验已发布的 source metadata。
+普通 `fluoh source check` 是只读且 diff-aware 的检查。用于 PR 和 merge gate 时，它会校验
+变更的 Source 文件，基于选定 base ref 比较 Manifest routes 和 release records，检查新增
+SDK tags，并且只验证需要包侧校验的 release records。只改 advisory、
+maintenance 或删除 release-record 时作为 YAML-only 检查处理。机器可读输出包含
+`recommendation`、`changeType` 或 `changeTypes`、`affectedManifests`、
+`checkedManifests`、`changedReleaseRecords`、`releaseCheckPlan`、
+`skippedReleaseChecks`、`sdkChecks`、`changedFiles`、`errors` 和 `warnings`。
+
+`fluoh source check . --all` 只用于明确的全量审计。大型人工审计可通过
+`--manifest <name>`、`--package <name>`、`--shard <index>/<total>`、
+`--concurrency <n>` 和 `--max-release-checks <n>` 缩小或分片。只想校验 Source YAML 和
+变更 route 选择、不 clone package 仓库时使用 `--skip-release-checks`。
+
+包侧验证和发布证据属于 package 仓库，应在 `fluoh package release` 前完成；本仓库通过
+`fluoh source check` 校验已发布的 source 元数据。
 
 ## GitHub Workflow
 
@@ -241,7 +259,7 @@ git diff --check
 - 优先从 pub.dev 安装已发布的 `fluoh`；如果 package 不可用，再回退到
   `FlutterOH/fluoh` 默认分支。
 - PR 通过 `fluoh source check --base-ref <base> --skip-release-checks .`
-  检查，让 CI 校验 source metadata 和变更的 SDK tags，但不 clone package
+  检查，让 CI 校验 source 元数据和变更的 SDK tags，但不 clone package
   release 仓库，也不安装 FlutterOH SDK。
 - push 到 `main` 时通过
   `fluoh source check --base-ref <before> --skip-release-checks .` 检查，直接
@@ -252,8 +270,10 @@ git diff --check
 Source checking 由 `fluoh` CLI 负责。
 首次 manifest 接入和人工 source-data PR 的作者仍应确认已在本地运行
 `fluoh source check .`。GitHub CI 有意使用 `--skip-release-checks`，避免在托管
-Linux runner 上执行 package 仓库。首次 manifest 接入后的常规 package release 由定时
-sync 导入，不需要 source PR；包侧验证由 `fluoh package release` 前的包仓库流程负责。
+Linux runner 上执行 package 仓库。它的 step summary 来自命令 JSON 字段，包括 changed
+files、affected/checked manifests、SDK checks、release-check plans、skipped release
+checks、warnings 和 errors。首次 manifest 接入后的常规 package release 由定时 sync
+导入，不需要 source PR；包侧验证由 `fluoh package release` 前的包仓库流程负责。
 
 `.github/workflows/sync.yml` 每天运行一次，并通过 `workflow_dispatch` 支持在
 GitHub Actions 中临时手动触发。它会先检查根 `fluoh.yaml` 是否声明 manifests。
@@ -267,10 +287,10 @@ git diff --check
 
 如果 sync 产生源数据变更，workflow 会先在生成的 commit 上运行
 `fluoh source check --base-ref origin/main --skip-release-checks .`，再直接
-提交到 `main`。Package release verification、OHOS build、OHOS run、
-`fluoh drive` 证据和设备验证属于 package 仓库，应在 `fluoh package release` 前完成，
-不属于 Source CI。sync workflow 只导入已发布的 source metadata。
-`fluoh source check --all .` 只用于明确的人工全量审计，不作为常规 CI 路径，
+提交到 `main`。包侧验证和发布证据属于 package 仓库，应在
+`fluoh package release` 前完成，不属于 Source CI。sync workflow 只导入已发布的
+source 元数据。
+`fluoh source check . --all` 只用于明确的人工全量审计，不作为常规 CI 路径，
 因为官方 source 可能包含大量 package manifests。
 
 ## Pull Requests

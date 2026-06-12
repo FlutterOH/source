@@ -97,6 +97,10 @@ Validate this checkout after changing source files:
 fluoh source check . --schema-only
 ```
 
+Add `--json` when a script or CI job needs the machine-readable contract. The
+schema-only check is local YAML/index validation; it does not read Git diffs,
+fetch SDK tags, clone package repositories, or verify package release tags.
+
 Register this checkout only when local `fluoh` commands should read it. The
 registration stores a snapshot:
 
@@ -122,6 +126,10 @@ fluoh source check --skip-release-checks .
 git diff --check
 ```
 
+`fluoh source sync` imports records from published package release tags only.
+Package implementation validation and release evidence are completed in package
+repositories before `fluoh package release`.
+
 Before opening a pull request, also run:
 
 ```sh
@@ -129,6 +137,12 @@ fluoh source check .
 git status --short --ignored=matching
 git diff --check
 ```
+
+For large explicit audits, use `fluoh source check . --all` and narrow with
+`--manifest`, `--package`, `--shard`, `--concurrency`, or
+`--max-release-checks` when needed. Routine CI uses `--skip-release-checks` so
+hosted runners validate source YAML and changed-route selection without cloning
+package repositories.
 
 ## Links
 

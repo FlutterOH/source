@@ -53,7 +53,8 @@ body:
       label: Supporting details
       description: Optional file paths, source snippets, command output, tags, or workflow links.
       placeholder: |
+        fluoh source check . --schema-only --json
         fluoh source sync .
-        fluoh source check --skip-release-checks .
+        fluoh source check --skip-release-checks . --json
     validations:
       required: false

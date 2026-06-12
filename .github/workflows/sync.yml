@@ -73,13 +73,13 @@ jobs:
       - name: Sync package release records
         if: steps.manifests.outputs.has_manifests == 'true'
         working-directory: source
-        run: fluoh source sync .
+        run: fluoh source sync . --json
 
       - name: Check synced source data
         if: steps.manifests.outputs.has_manifests == 'true'
         working-directory: source
         run: |
-          fluoh source check --skip-release-checks .
+          fluoh source check --skip-release-checks . --json
           git diff --check
 
       - name: Commit synced source to main
@@ -96,6 +96,6 @@ jobs:
           git add fluoh.yaml manifests
           git commit -m "chore: sync source data"
           git pull --rebase origin main
-          fluoh source check --base-ref origin/main --skip-release-checks .
+          fluoh source check --base-ref origin/main --skip-release-checks . --json
           git diff --check origin/main...HEAD
           git push origin HEAD:main

@@ -23,7 +23,7 @@
 
 `fluoh` 默认使用这个官方 source，大多数用户不需要 clone 本仓库。
 
-刷新 source metadata 并查看可用 FlutterOH SDK 版本：
+刷新 source 元数据并查看可用 FlutterOH SDK 版本：
 
 ```sh
 fluoh source update
@@ -91,6 +91,10 @@ fluoh --version
 fluoh source check . --schema-only
 ```
 
+脚本或 CI 需要机器可读契约时可加 `--json`。`schema-only` 检查只做本地
+YAML/index 校验；不会读取 Git diff、fetch SDK tags、clone package 仓库，也不会验证
+package release tags。
+
 只有需要让本机 `fluoh` 命令读取当前 checkout 时，才注册本地 source。注册时会保存一份
 快照：
 
@@ -114,6 +118,9 @@ fluoh source check --skip-release-checks .
 git diff --check
 ```
 
+`fluoh source sync` 只从已发布的 package release tags 导入记录。包实现验证和发布证据应在
+package 仓库里、`fluoh package release` 之前完成。
+
 提交 PR 前还需要运行：
 
 ```sh
@@ -121,6 +128,11 @@ fluoh source check .
 git status --short --ignored=matching
 git diff --check
 ```
+
+明确需要大型全量审计时使用 `fluoh source check . --all`，必要时用
+`--manifest`、`--package`、`--shard`、`--concurrency` 或 `--max-release-checks`
+缩小范围。常规 CI 使用 `--skip-release-checks`，让托管 runner 校验 source YAML 和
+变更 route 选择，但不 clone package 仓库。
 
 ## 链接
 

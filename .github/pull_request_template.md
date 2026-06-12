@@ -34,7 +34,8 @@ Fill only the lines that apply.
 ## Validation Confirmation
 
 - [ ] I ran `git diff --check`.
-- [ ] For source data changes, I ran `fluoh source check .`.
+- [ ] For YAML/index-only source edits, I ran `fluoh source check . --schema-only`.
+- [ ] For source data changes that add, remove, reorder, or modify SDK versions or package release records, I ran `fluoh source check .`.
 - [ ] For manual release-record refreshes, I reviewed the `fluoh source sync .` output and ran `fluoh source check --skip-release-checks .`.
 - [ ] For workflow changes, I reviewed triggers and permissions.
 
@@ -60,6 +61,7 @@ Fill only the lines that apply.
 Common commands:
 
 ```sh
+fluoh source check . --schema-only
 fluoh source check .
 git diff --check
 ```
@@ -77,8 +79,8 @@ repositories or install FlutterOH SDKs on hosted Linux runners. For first-time
 manifest intake and manual source-data PRs, authors should still confirm they
 ran local `fluoh source check .`. After a manifest is merged, normal package
 release records are imported by scheduled sync without a source PR; package
-release verification, OHOS build/run, `fluoh drive` evidence, and device checks
-must be completed in the package repository before publishing release tags.
+validation and release evidence must be completed in the package repository
+before publishing release tags.
 
 For first-time package manifest PRs, provide the package release locator:
 

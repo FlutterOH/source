@@ -86,8 +86,9 @@ package repository has completed its own release workflow:
 - The package release tag records the FlutterOH repository URL, upstream URL,
   package name and path, SDK line, adapted upstream version, release version,
   and upstream commit.
-- Release readiness has been reviewed with `fluoh package status`, and
-  `fluoh package check` passed before release.
+- Release readiness has been reviewed with `fluoh package status`, and the
+  package repository has completed the package-side validation and release
+  gates required before `fluoh package release`.
 - At least one release tag has been published with `fluoh package release`.
 
 Do not add package code, package release tags, unverified readiness claims, or
@@ -226,6 +227,13 @@ For routine local validation from this repository:
 fluoh source check . --schema-only
 ```
 
+Use `--schema-only` for local YAML/index validation only. It checks the Source
+root, SDK metadata, Manifest routes, route/name consistency, release records,
+and package index construction without reading Git diffs, fetching SDK tags,
+cloning package repositories, verifying release tags, or touching configured
+source snapshots and locks. It cannot be combined with diff, release,
+work-root, or package verification options.
+
 Register this checkout only when local `fluoh` commands should read it. The
 registration stores a snapshot:
 
@@ -255,9 +263,26 @@ git status --short --ignored=matching
 git diff --check
 ```
 
-Package readiness checks, package tests, and app compatibility checks belong in
-the package repository before `fluoh package release`; this repository validates
-only released source metadata through `fluoh source check`.
+Normal `fluoh source check` is read-only and diff-aware. For PR and merge-gate
+checks it validates changed Source files, compares Manifest routes and release
+records against the selected base ref, checks added SDK tags, and verifies only
+the release records that need package-side validation. Advisory-only,
+maintenance-only, and deleted release-record changes are YAML-only checks.
+Machine-readable output includes `recommendation`, `changeType` or
+`changeTypes`, `affectedManifests`, `checkedManifests`,
+`changedReleaseRecords`, `releaseCheckPlan`, `skippedReleaseChecks`,
+`sdkChecks`, `changedFiles`, `errors`, and `warnings`.
+
+Use `fluoh source check . --all` only for explicit full audits. Large manual
+audits can be narrowed with `--manifest <name>`, `--package <name>`,
+`--shard <index>/<total>`, `--concurrency <n>`, and
+`--max-release-checks <n>`. Use `--skip-release-checks` when the intent is to
+validate Source YAML and changed-route selection without cloning package
+repositories.
+
+Package-side validation and release evidence belong in the package repository
+before `fluoh package release`; this repository validates only released source
+metadata through `fluoh source check`.
 
 ## GitHub Workflow
 
@@ -281,9 +306,11 @@ Source checking belongs to the `fluoh` CLI.
 For first-time manifest intake and manual source-data PRs, authors should still
 confirm they ran local `fluoh source check .`. GitHub CI intentionally uses
 `--skip-release-checks` to avoid running package repositories on hosted Linux
-runners. Normal package releases after manifest intake are imported by scheduled
-sync without a source PR; package-side verification is enforced before
-`fluoh package release`.
+runners. Its step summary is derived from the command's JSON fields, including
+changed files, affected/checked manifests, SDK checks, release-check plans,
+skipped release checks, warnings, and errors. Normal package releases after
+manifest intake are imported by scheduled sync without a source PR;
+package-side verification is enforced before `fluoh package release`.
 
 `.github/workflows/sync.yml` runs daily and also supports
 `workflow_dispatch` for temporary manual runs from GitHub Actions. It checks
@@ -298,11 +325,10 @@ git diff --check
 
 When sync changes source data, the workflow commits directly to `main` after
 running `fluoh source check --base-ref origin/main --skip-release-checks .` on
-the generated commit. Package release verification, OHOS builds, OHOS runs,
-`fluoh drive` evidence, and device checks belong to the package repository
-before `fluoh package release`, not to this Source CI. The sync workflow imports
-published source metadata only.
-Use `fluoh source check --all .` only for explicit manual audits, not routine
+the generated commit. Package-side validation and release evidence belong to
+the package repository before `fluoh package release`, not to this Source CI.
+The sync workflow imports published source metadata only.
+Use `fluoh source check . --all` only for explicit manual audits, not routine
 CI, because official sources can contain many package manifests.
 
 ## Pull Requests

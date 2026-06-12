@@ -140,9 +140,18 @@ jobs:
                 return 0 unless object.is_a?(Hash)
 
                 [
+                  "command",
+                  "ok",
                   "recommendation",
+                  "changeType",
+                  "changeTypes",
+                  "affectedManifests",
                   "changedFiles",
                   "checkedManifests",
+                  "changedReleaseRecords",
+                  "releaseCheckPlan",
+                  "skippedReleaseChecks",
+                  "sdkChecks",
                   "warnings",
                   "errors",
                   "releaseChecks",
@@ -157,9 +166,30 @@ jobs:
                 &.last
 
               if data
+                change_types = Array(data["changeTypes"])
+                change_types = [data["changeType"]] if change_types.empty? && data["changeType"]
+                release_plan = data["releaseCheckPlan"].is_a?(Hash) ? data["releaseCheckPlan"] : {}
+                release_plan_items = Array(release_plan["items"])
+                sdk_checks = data["sdkChecks"]
+                sdk_check_count =
+                  case sdk_checks
+                  when Array
+                    sdk_checks.length
+                  when Hash
+                    sdk_checks.length
+                  else
+                    0
+                  end
+
                 puts "- Recommendation: `#{data.fetch("recommendation", data.fetch("status", "unknown"))}`"
+                puts "- Change types: #{change_types.empty? ? 0 : change_types.map { |value| "`#{value}`" }.join(", ")}"
                 puts "- Changed files: #{Array(data["changedFiles"]).length}"
+                puts "- Affected manifests: #{Array(data["affectedManifests"]).length}"
                 puts "- Checked manifests: #{Array(data["checkedManifests"]).length}"
+                puts "- Changed release records: #{Array(data["changedReleaseRecords"]).length}"
+                puts "- Release plan items: #{release_plan_items.length}"
+                puts "- Skipped release checks: #{Array(data["skippedReleaseChecks"]).length}"
+                puts "- SDK checks: #{sdk_check_count}"
                 puts "- Warnings: #{Array(data["warnings"]).length}"
                 puts "- Errors: #{Array(data["errors"]).length}"
                 puts "- Release checks: #{Array(data["releaseChecks"]).length}"

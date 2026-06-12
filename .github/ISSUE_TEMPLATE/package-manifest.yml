@@ -59,7 +59,7 @@ body:
       options:
         - label: The release tag was created by `fluoh package release` and points to the intended package release.
           required: true
-        - label: Package-side readiness checks, package tests, and OHOS verification were completed before release.
+        - label: The package repository completed the package-side validation and release evidence required before `fluoh package release`.
           required: true
         - label: The package repository contains its package-owned `fluoh.yaml` at the published release tag.
           required: true

@@ -627,6 +627,9 @@ jobs:
               /^chore\(source\): sync package release records/i.test(
                 pullRequest.title || '',
               );
+            const sourceYamlNeedsReleaseVerification =
+              sourceYamlFiles.length > 0 &&
+              (sdkVersionChanges.changed || releaseRecordTouches);
             const validationExpectations = [
               {
                 text: 'PR author confirmed `git diff --check` was run.',
@@ -635,15 +638,23 @@ jobs:
               },
             ];
             if (sourceYamlFiles.length > 0) {
-              validationExpectations.push({
-                text: 'PR author confirmed `fluoh source check .` was run.',
-                pattern: /fluoh source check \./i,
-                required: true,
-              });
+              if (sourceYamlNeedsReleaseVerification) {
+                validationExpectations.push({
+                  text: 'PR author confirmed `fluoh source check .` was run for SDK version or package release-record source data.',
+                  pattern: /fluoh source check \.(?!\s*--schema-only)/i,
+                  required: true,
+                });
+              } else {
+                validationExpectations.push({
+                  text: 'PR author confirmed `fluoh source check . --schema-only` was run for YAML/index-only source edits.',
+                  pattern: /fluoh source check \.\s+--schema-only/i,
+                  required: true,
+                });
+              }
             }
-            if (releaseRecordTouches || manualReleaseRecordRefresh) {
+            if (manualReleaseRecordRefresh) {
               validationExpectations.push({
-                text: 'Release-record PRs confirm sync output was reviewed and `fluoh source check --skip-release-checks .` was run.',
+                text: 'Release-record refresh PRs confirm sync output was reviewed and `fluoh source check --skip-release-checks .` was run.',
                 pattern: /fluoh source sync \..*fluoh source check --skip-release-checks \./i,
                 required: true,
               });
