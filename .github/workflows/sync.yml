@@ -70,7 +70,7 @@ jobs:
           end
           RUBY
 
-      - name: Sync package release records
+      - name: Sync package release metadata
         if: steps.manifests.outputs.has_manifests == 'true'
         working-directory: source
         run: fluoh source sync . --json
@@ -94,7 +94,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add fluoh.yaml manifests
-          git commit -m "chore: sync source data"
+          git commit -m "chore(source): sync package release metadata"
           git pull --rebase origin main
           fluoh source check --base-ref origin/main --skip-release-checks . --json
           git diff --check origin/main...HEAD

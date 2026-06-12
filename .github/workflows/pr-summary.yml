@@ -621,10 +621,10 @@ jobs:
               pullRequest.body || '',
               'Change Type',
             );
-            const manualReleaseRecordRefresh =
+            const packageReleaseMetadataSync =
               changeTypeLines.some((line) =>
-                /Package release-record sync refresh/i.test(line)) ||
-              /^chore\(source\): sync package release records/i.test(
+                /Package release metadata sync/i.test(line)) ||
+              /^chore\(source\): sync package release metadata/i.test(
                 pullRequest.title || '',
               );
             const sourceYamlNeedsReleaseVerification =
@@ -640,7 +640,7 @@ jobs:
             if (sourceYamlFiles.length > 0) {
               if (sourceYamlNeedsReleaseVerification) {
                 validationExpectations.push({
-                  text: 'PR author confirmed `fluoh source check .` was run for SDK version or package release-record source data.',
+                  text: 'PR author confirmed `fluoh source check .` was run for SDK versions or package release metadata.',
                   pattern: /fluoh source check \.(?!\s*--schema-only)/i,
                   required: true,
                 });
@@ -652,10 +652,10 @@ jobs:
                 });
               }
             }
-            if (manualReleaseRecordRefresh) {
+            if (packageReleaseMetadataSync) {
               validationExpectations.push({
-                text: 'Release-record refresh PRs confirm sync output was reviewed and `fluoh source check --skip-release-checks .` was run.',
-                pattern: /fluoh source sync \..*fluoh source check --skip-release-checks \./i,
+                text: 'Package release metadata sync PRs confirm sync output was reviewed and `fluoh source check --skip-release-checks .` was run.',
+                pattern: /fluoh source sync \.[\s\S]*fluoh source check --skip-release-checks \./i,
                 required: true,
               });
             }

@@ -9,7 +9,8 @@ Use one of:
 - `feat(sdk): add <sdk-version>`
 - `feat(source): add <package-name> manifest`
 - `fix(source): correct <package-name> manifest metadata`
-- `chore(source): sync package release records`
+- `chore(source): sync package release metadata`
+- `ci(source): update source validation workflow`
 - `docs: update <area>`
 
 ## Change Type
@@ -17,7 +18,7 @@ Use one of:
 - [ ] SDK release metadata
 - [ ] First-time package manifest
 - [ ] Existing package manifest metadata
-- [ ] Package release-record sync refresh
+- [ ] Package release metadata sync
 - [ ] Documentation, workflow, issue template, or PR template
 
 ## Source Data Scope
@@ -36,7 +37,7 @@ Fill only the lines that apply.
 - [ ] I ran `git diff --check`.
 - [ ] For YAML/index-only source edits, I ran `fluoh source check . --schema-only`.
 - [ ] For source data changes that add, remove, reorder, or modify SDK versions or package release records, I ran `fluoh source check .`.
-- [ ] For manual release-record refreshes, I reviewed the `fluoh source sync .` output and ran `fluoh source check --skip-release-checks .`.
+- [ ] For package release metadata syncs, I reviewed the `fluoh source sync .` output and ran `fluoh source check --skip-release-checks .`.
 - [ ] For workflow changes, I reviewed triggers and permissions.
 
 ## SDK Release (if applicable)
@@ -66,7 +67,7 @@ fluoh source check .
 git diff --check
 ```
 
-For existing package manifest release-record refreshes, also run in this source repository:
+For package release metadata syncs, also run in this source repository:
 
 ```sh
 fluoh source sync .
