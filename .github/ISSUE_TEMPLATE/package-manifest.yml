@@ -8,6 +8,8 @@ body:
     attributes:
       value: |
         Use this only for first-time official source intake after the package repository has published a release tag with `fluoh package release`.
+        The package repository should already have completed its package-side release gates before publishing the tag.
+        If you have package report or check output, include it below as verification context; maintainers will still verify the published tag.
         In-progress adaptations, package code, and package-owned metadata stay in the package repository.
         For existing manifest corrections, advisory text, maintenance state, repository/path fixes, or sync behavior, use the Source data issue template.
         After the first manifest is merged, normal package release records are imported by scheduled sync and do not need a new Source PR.
@@ -51,6 +53,18 @@ body:
       placeholder: camera-0.11.0-ohos-3.35-0.1.0
     validations:
       required: true
+  - type: textarea
+    id: release-context
+    attributes:
+      label: Package release verification context
+      description: Optional. Link or summarize package-side report/check output for the published tag if you have it. Maintainers can verify the release tag independently.
+      placeholder: |
+        report: .fluoh/reports/<scope>/report-<timestamp>.md
+        check_report.py: passed
+        independent review: passed
+        fluoh package check --package <name> --report <report-path> --json: passed
+    validations:
+      required: false
   - type: checkboxes
     id: basic-checks
     attributes:
@@ -59,8 +73,10 @@ body:
       options:
         - label: The release tag was created by `fluoh package release` and points to the intended package release.
           required: true
-        - label: The package repository completed the package-side validation and release evidence required before `fluoh package release`.
+        - label: I understand Source maintainers will verify package-side release gates from the published tag and may block intake if those gates are missing or incomplete.
           required: true
+        - label: If I maintain the package repository, the canonical report, `check_report.py`, independent review, and `fluoh package check --report <report-path>` gates are complete.
+          required: false
         - label: The package repository contains its package-owned `fluoh.yaml` at the published release tag.
           required: true
         - label: This is not an in-progress or unfinished adaptation.

@@ -127,10 +127,7 @@ jobs:
                   missingInfo.push(heading);
                 }
               }
-              if (
-                !hasValue(sectionValue('SDK tag reference')) &&
-                !hasValue(sectionValue('Tag proof'))
-              ) {
+              if (!hasValue(sectionValue('SDK tag reference'))) {
                 missingInfo.push('SDK tag reference');
               }
             }

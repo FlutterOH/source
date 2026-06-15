@@ -24,7 +24,7 @@ Maintain and validate this repository with a released `fluoh` or the sibling `..
 - Add only SDK versions that exist as SDK repository tags and should be visible through `fluoh sdk list`.
 - Keep `sdk.versions` as complete installable SDK tags in ascending semantic version order.
 - Use `fluoh source init <path>` only for new local source scaffolds; this official checkout is already initialized.
-- Add a package manifest only after the package repository has completed its own release workflow: package-owned `fluoh.yaml`, `fluoh package status`, `fluoh package check`, and at least one published `fluoh package release` tag.
+- Add a package manifest only after the package repository has completed its own release workflow: package-owned `fluoh.yaml`, `fluoh package status`, the package-side release-gate outputs required by that workflow, and at least one published `fluoh package release` tag.
 - For first-time package intake, add both the root `manifests` route entry and `manifests/<manifest-name>/fluoh.yaml`; the route name must match the manifest package name.
 - Use `fluoh source sync` to refresh release records from existing package manifests; edit manifest metadata, advisory text, and maintenance notes directly in manifest YAML.
 - Do not hand-edit generated package release records when `fluoh source sync` is the source of truth.
@@ -75,8 +75,10 @@ PR, push, and scheduled sync checks. Keep release verification in local
 maintainer checks or explicit manual audits; do not make routine CI clone and
 verify every package release repository.
 
-Package-side release gates and implementation evidence belong in the package
-repository before `fluoh package release`, not in this Source repository.
+Package-side release-gate outputs belong in the package repository before
+`fluoh package release`, not in this Source repository. Source maintainers
+verify published source metadata and package release tags; they should not ask
+contributors to reproduce package repository checks in this repository.
 
 Only add a local source when source-consuming commands should use this checkout.
 Local sources are snapshots; add it once:

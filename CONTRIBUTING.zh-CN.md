@@ -76,8 +76,10 @@ Package manifest 是从包仓库 release 结果生成或整理出来的源数据
 - 包仓库已经有包仓库自己的 `fluoh.yaml`。
 - 包 release tag 记录了 FlutterOH 仓库 URL、上游 URL、package name 和 path、SDK line、
   已适配的 upstream version、release version 和 upstream commit。
-- 发布前已经通过 `fluoh package status` 查看发布就绪状态，并在 package 仓库完成
-  `fluoh package release` 前要求的包侧验证和发布门禁。
+- 发布前已经通过 `fluoh package status` 查看发布就绪状态。
+- package 仓库已经完成当前包侧发布流程要求的发布门禁输出，例如适用时的
+  canonical report、report check、独立审核和
+  `fluoh package check --report <report-path>`。
 - 至少已经通过 `fluoh package release` 发布一个 release tag。
 
 不要把包代码、包 release tag、未经发布流程确认的发布就绪声明或未发布的 package
@@ -154,11 +156,13 @@ PR 必须同时加入根 manifest route 条目和对应的 `manifests/<manifest-
    ```
 
 4. 创建 `manifests/<manifest-name>/fluoh.yaml`，写入 package repository、upstream、
-   package name 和 path、SDK line，以及已发布 package release tag 对应的 records。
+   package name 和 path、SDK line，以及包侧发布门禁已完成的已发布 package release tag
+   对应 records。
 5. 运行 `fluoh source check .` 和 `git diff --check`。
-6. 提交 PR，说明 manifest route name、适配仓库、已发布 release tag，并确认已在本地运行
-   source check。上游路径、SDK line 和 release records 应能从 manifest diff 和已发布
-   package release tag 中复核。
+6. 提交 PR，说明 manifest route name、适配仓库、已发布 release tag、可选的 package
+   release 验证备注，并确认已在本地运行 source check。上游路径、SDK line、release
+   records 和包侧门禁应能从 manifest diff 和已发布 package release tag 中复核；不要只依赖
+   用户在表单里写的说明。
 
 manifest 合并后，`.github/workflows/sync.yml` 会根据包仓库 tags 继续更新
 release records。manifest 已存在后如需手动刷新，运行：
@@ -172,14 +176,14 @@ git diff --check
 这一步校验 sync 生成的 dirty source snapshot。如果这次刷新要作为人工
 source-data PR 提交，release-record verification 需要基于已提交 diff；提交 sync
 生成的改动后，打开 PR 前应在本地运行 `fluoh source check --base-ref <base> .`。
-常规定时 sync commit 没有 PR 作者；它信任已经在包仓库完成验证后发布的 package
-release tags。
+常规定时 sync commit 没有 PR 作者；它信任已经在包仓库完成包侧发布门禁后发布的
+package release tags。
 
 维护者也可以在 GitHub Actions 中手动触发 `sync source` workflow，用于下一次定时任务
 之前的临时仓库侧刷新。
 
 首次 manifest PR 合并后，包维护者不需要每发布一个包版本都向 `FlutterOH/source` 提 PR。
-新包版本应在包仓库通过 `fluoh package status` 和 `fluoh package check` 后，再用
+新包版本应在包仓库完成当前包侧发布流程要求的发布门禁后，再用
 `fluoh package release` 发布；定时 sync workflow 可以导入这些 tags。只有 release tag
 无法表达的 metadata 变化才需要再次提交 source-data PR，例如 manifest route name 调整、
 repository 或 package path 修正、advisory 文案、maintenance 状态或流程变化。
@@ -217,7 +221,7 @@ fluoh source add local .
 fluoh sdk list
 ```
 
-修改 source 文件后，先刷新这份快照，再测试消费侧命令：
+修改 source 文件后，先刷新这份快照，再验证消费侧命令：
 
 ```sh
 fluoh source update local
@@ -249,7 +253,7 @@ maintenance 或删除 release-record 时作为 YAML-only 检查处理。机器�
 `--concurrency <n>` 和 `--max-release-checks <n>` 缩小或分片。只想校验 Source YAML 和
 变更 route 选择、不 clone package 仓库时使用 `--skip-release-checks`。
 
-包侧验证和发布证据属于 package 仓库，应在 `fluoh package release` 前完成；本仓库通过
+包侧验证和发布门禁属于 package 仓库，应在 `fluoh package release` 前完成；本仓库通过
 `fluoh source check` 校验已发布的 source 元数据。
 
 ## GitHub Workflow
@@ -273,7 +277,7 @@ Source checking 由 `fluoh` CLI 负责。
 Linux runner 上执行 package 仓库。它的 step summary 来自命令 JSON 字段，包括 changed
 files、affected/checked manifests、SDK checks、release-check plans、skipped release
 checks、warnings 和 errors。首次 manifest 接入后的常规 package release 由定时 sync
-导入，不需要 source PR；包侧验证由 `fluoh package release` 前的包仓库流程负责。
+导入，不需要 source PR；包侧发布门禁由 `fluoh package release` 前的包仓库流程负责。
 
 `.github/workflows/sync.yml` 每天运行一次，并通过 `workflow_dispatch` 支持在
 GitHub Actions 中临时手动触发。它会先检查根 `fluoh.yaml` 是否声明 manifests。
@@ -287,7 +291,7 @@ git diff --check
 
 如果 sync 产生源数据变更，workflow 会先在生成的 commit 上运行
 `fluoh source check --base-ref origin/main --skip-release-checks .`，再直接
-提交到 `main`。包侧验证和发布证据属于 package 仓库，应在
+提交到 `main`。包侧验证和发布门禁属于 package 仓库，应在
 `fluoh package release` 前完成，不属于 Source CI。sync workflow 只导入已发布的
 source 元数据。
 `fluoh source check . --all` 只用于明确的人工全量审计，不作为常规 CI 路径，

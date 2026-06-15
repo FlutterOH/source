@@ -86,9 +86,11 @@ package repository has completed its own release workflow:
 - The package release tag records the FlutterOH repository URL, upstream URL,
   package name and path, SDK line, adapted upstream version, release version,
   and upstream commit.
-- Release readiness has been reviewed with `fluoh package status`, and the
-  package repository has completed the package-side validation and release
-  gates required before `fluoh package release`.
+- Release readiness has been reviewed with `fluoh package status`.
+- The package repository has completed the release-gate outputs required by its
+  current package workflow, such as the canonical report, report check,
+  independent review, and `fluoh package check --report <report-path>` when
+  those gates apply.
 - At least one release tag has been published with `fluoh package release`.
 
 Do not add package code, package release tags, unverified readiness claims, or
@@ -169,12 +171,14 @@ First-time package intake uses a pull request to this repository:
 
 4. Create `manifests/<manifest-name>/fluoh.yaml` with repository, upstream,
    package name and path, SDK line, and records from published package release
-   tags.
+   tags whose package-side release gates are complete.
 5. Run `fluoh source check .` and `git diff --check`.
 6. Open a pull request that lists the manifest route name, package repository,
-   published release tag, and confirms the local source check was run. Upstream
-   paths, SDK lines, and release records should be verifiable from the manifest
-   diff and the published package release tag.
+   published release tag, optional package release verification notes, and
+   confirms the local source check was run. Upstream paths, SDK lines, release
+   records, and package-side gates should be verifiable from the manifest diff
+   and the published package release tag; do not rely on user-provided form
+   text alone.
 
 After the manifest is merged, `.github/workflows/sync.yml` can keep release
 records current from package repository tags. For manual refreshes after a
@@ -191,7 +195,7 @@ be submitted as a manual source-data pull request, release-record verification
 requires a committed diff; after committing the generated changes, run
 `fluoh source check --base-ref <base> .` locally before opening the pull request.
 Routine scheduled sync commits do not have a PR author; they trust package
-repository release tags that were produced after package-side verification.
+repository release tags that were produced after package-side release gates.
 
 Maintainers can also trigger the `sync source` workflow from GitHub Actions for
 an immediate repository-side refresh before the next scheduled run.
@@ -199,8 +203,9 @@ an immediate repository-side refresh before the next scheduled run.
 Package maintainers do not need a new `FlutterOH/source` pull request for every
 package release after the first manifest pull request is merged. New package
 versions should be released in the package repository with
-`fluoh package release` after `fluoh package status` and
-`fluoh package check`; the scheduled sync workflow can import those tags.
+`fluoh package release` after the package-side release gates required by the
+current package workflow are complete; the scheduled sync workflow can import
+those tags.
 Open another source-data pull request only for metadata changes that cannot be
 derived from release tags, such as manifest route name changes, repository or
 package path corrections, advisory text, maintenance state, or workflow changes.
@@ -242,7 +247,7 @@ fluoh source add local .
 fluoh sdk list
 ```
 
-After changing source files, refresh that snapshot before testing consumer
+After changing source files, refresh that snapshot before validating consumer
 commands:
 
 ```sh
@@ -280,7 +285,7 @@ audits can be narrowed with `--manifest <name>`, `--package <name>`,
 validate Source YAML and changed-route selection without cloning package
 repositories.
 
-Package-side validation and release evidence belong in the package repository
+Package-side validation and release gates belong in the package repository
 before `fluoh package release`; this repository validates only released source
 metadata through `fluoh source check`.
 
@@ -310,7 +315,7 @@ runners. Its step summary is derived from the command's JSON fields, including
 changed files, affected/checked manifests, SDK checks, release-check plans,
 skipped release checks, warnings, and errors. Normal package releases after
 manifest intake are imported by scheduled sync without a source PR;
-package-side verification is enforced before `fluoh package release`.
+package-side release gates are enforced before `fluoh package release`.
 
 `.github/workflows/sync.yml` runs daily and also supports
 `workflow_dispatch` for temporary manual runs from GitHub Actions. It checks
@@ -325,7 +330,7 @@ git diff --check
 
 When sync changes source data, the workflow commits directly to `main` after
 running `fluoh source check --base-ref origin/main --skip-release-checks .` on
-the generated commit. Package-side validation and release evidence belong to
+the generated commit. Package-side validation and release gates belong to
 the package repository before `fluoh package release`, not to this Source CI.
 The sync workflow imports published source metadata only.
 Use `fluoh source check . --all` only for explicit manual audits, not routine

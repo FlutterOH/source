@@ -28,6 +28,7 @@ Fill only the lines that apply.
 - Manifest route name:
 - Package repository:
 - Published release tag:
+- Package release verification notes:
 - Sync notes:
 - SDK version:
 - Affected workflow/template:
@@ -49,6 +50,7 @@ Fill only the lines that apply.
 
 - [ ] Package adaptation code, package release tags, and package-owned metadata remain outside this repository.
 - [ ] Package release-record changes reference published `fluoh package release` tags, not in-progress package repository state.
+- [ ] Referenced package release tags are published `fluoh package release` tags; package-side release gates can be verified from the package repository.
 - [ ] First-time package manifests add both the root `fluoh.yaml` manifest route entry and `manifests/<manifest-name>/fluoh.yaml`.
 - [ ] Unfinished adaptations are not being added to the official source.
 
@@ -80,8 +82,10 @@ repositories or install FlutterOH SDKs on hosted Linux runners. For first-time
 manifest intake and manual source-data PRs, authors should still confirm they
 ran local `fluoh source check .`. After a manifest is merged, normal package
 release records are imported by scheduled sync without a source PR; package
-validation and release evidence must be completed in the package repository
-before publishing release tags.
+validation and release gates must be completed in the package repository
+before publishing release tags. Authors may include package report or check
+output as review context, but Source maintainers should verify the published
+tag rather than rely on user-provided text.
 
 For first-time package manifest PRs, provide the package release locator:
 
@@ -89,4 +93,5 @@ For first-time package manifest PRs, provide the package release locator:
 manifest route name: <manifest-name>
 package repository: <url>
 published release tag: <tag>
+package release verification notes: <optional report path, check command/result, or "maintainer will verify">
 ```

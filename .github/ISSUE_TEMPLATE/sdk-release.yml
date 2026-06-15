@@ -35,7 +35,7 @@ body:
     validations:
       required: true
   - type: textarea
-    id: proof
+    id: tag-reference
     attributes:
       label: SDK tag reference
       description: Link the tag, paste a lookup command result, or explain why the metadata should be removed or corrected. Local metadata edits should pass `fluoh source check . --schema-only`; release verification should pass `fluoh source check .`.

@@ -109,7 +109,7 @@ fluoh source add local .
 fluoh sdk list
 ```
 
-After changing source files, refresh that snapshot before testing consumer
+After changing source files, refresh that snapshot before validating consumer
 commands:
 
 ```sh
@@ -117,7 +117,7 @@ fluoh source update local
 fluoh sdk list
 ```
 
-When package manifests exist, maintainers can refresh released package records
+When package manifests exist, maintainers can refresh released package metadata
 from package repositories:
 
 ```sh
@@ -127,8 +127,9 @@ git diff --check
 ```
 
 `fluoh source sync` imports records from published package release tags only.
-Package implementation validation and release evidence are completed in package
-repositories before `fluoh package release`.
+Package-side release gates are completed in package repositories before
+`fluoh package release`; this Source repository imports and validates the
+published metadata.
 
 Before opening a pull request, also run:
 

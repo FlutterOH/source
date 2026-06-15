@@ -103,14 +103,14 @@ fluoh source add local .
 fluoh sdk list
 ```
 
-修改 source 文件后，先刷新这份快照，再测试消费侧命令：
+修改 source 文件后，先刷新这份快照，再验证消费侧命令：
 
 ```sh
 fluoh source update local
 fluoh sdk list
 ```
 
-当 package manifests 存在后，维护者可以从包仓库刷新已发布 package records：
+当 package manifests 存在后，维护者可以从包仓库刷新已发布 package metadata：
 
 ```sh
 fluoh source sync .
@@ -118,8 +118,9 @@ fluoh source check --skip-release-checks .
 git diff --check
 ```
 
-`fluoh source sync` 只从已发布的 package release tags 导入记录。包实现验证和发布证据应在
-package 仓库里、`fluoh package release` 之前完成。
+`fluoh source sync` 只从已发布的 package release tags 导入记录。包侧发布门禁应在
+package 仓库里、`fluoh package release` 之前完成；本 Source 仓库只导入并校验已发布的
+metadata。
 
 提交 PR 前还需要运行：
 
